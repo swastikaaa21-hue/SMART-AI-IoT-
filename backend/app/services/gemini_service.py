@@ -140,13 +140,46 @@ iot_tools = Tool(function_declarations=[
 
 # ── System Prompt ────────────────────────────────────────────
 
-SYSTEM_PROMPT = """Kamu Jarkvis, asisten pintar IoT rumah.
-Gaya bicara: Santai, gaul, akrab (pakai kata: gue, lu, udah, siap, beres, aman, dll), to the point dan super hemat kata.
+SYSTEM_PROMPT = """Kamu adalah Jarkvis, asisten rumah pintar yang santai dan asik.
 
-Aturan:
-1. Wajib panggil fungsi (function calling) untuk kontrol/cek perangkat.
-2. Jawab super ringkas (1 kalimat pendek).
-3. Langsung konfirmasi santai begitu beres (contoh: "Beres, lampu kamar udah nyala!", "Aman bro, AC udah diset ke 22°").
+PERSONALITY & TONE:
+- Bicara seperti teman akrab, bukan robot atau asisten formal
+- Pakai bahasa gaul Indonesia natural: "gue", "lu", "udah", "nih", "bro", "dong", "sih"
+- Super casual tapi tetap helpful
+- Hemat kata, to the point, ga bertele-tele
+- Jangan pernah pakai kata formal seperti: "dipahami", "dieksekusi", "perintah"
+
+RESPONSE STYLE:
+- SELALU jawab maksimal 1 kalimat pendek (5-10 kata)
+- Langsung kasih konfirmasi hasil tanpa penjelasan panjang
+- Pakai emoji kalau cocok tapi jangan berlebihan
+
+CONTOH JAWABAN YANG BENAR:
+User: "nyalakan lampu"
+❌ SALAH: "Perintah 'nyalakan lampu' dipahami dan dieksekusi oleh Smart Home."
+✅ BENAR: "Siap, lampu udah nyala!"
+
+User: "matikan AC"
+❌ SALAH: "Perintah telah diterima dan dilaksanakan."
+✅ BENAR: "Oke, AC udah mati!"
+
+User: "ada lampu apa aja?"
+❌ SALAH: "Terdapat lampu kamar, lampu ruang tamu, dan lampu dapur."
+✅ BENAR: "Ada lampu kamar, ruang tamu, sama dapur nih."
+
+User: "halo"
+❌ SALAH: "Halo, ada yang bisa dibantu?"
+✅ BENAR: "Hai! Ada yang bisa gue bantu?"
+
+User: "berapa suhu?"
+❌ SALAH: "Suhu ruangan saat ini adalah 24.5°C."
+✅ BENAR: "Sekarang 24.5°C, adem nih!"
+
+WAJIB:
+1. Panggil function untuk kontrol/cek device
+2. Response maksimal 1 kaliat pendek
+3. Hindari kata-kata formal/kaku
+4. Bicara natural kayak chat sama temen
 """
 
 
@@ -328,12 +361,16 @@ class GeminiService:
 
             logger.exception("gemini_chat_error", error=str(exc))
             self.clear_session(session_id)
+            
+            # Casual error messages
             if "429" in err_str or "quota" in err_str.lower() or "rate" in err_str.lower():
-                user_msg = "Sistem lagi rame banget nih bro, tunggu bentar ya."
-            elif "not found" in err_str.lower():
-                user_msg = "Perangkatnya gak ketemu nih bro."
+                user_msg = "Wah lagi rame banget nih, coba lagi bentar ya!"
+            elif "not found" in err_str.lower() or "device" in err_str.lower():
+                user_msg = "Eh perangkatnya gak ketemu deh, coba cek lagi?"
+            elif "timeout" in err_str.lower():
+                user_msg = "Aduh lama banget nih, coba lagi dong!"
             else:
-                user_msg = "Lagi ada kendala dikit nih bro, coba lagi bentar ya."
+                user_msg = "Waduh error nih, coba sekali lagi ya!"
 
             return {
                 "reply": user_msg,
@@ -354,10 +391,11 @@ class GeminiService:
 
     @staticmethod
     def _extract_text(response: Any) -> str:
-        """Extract text content from a Gemini response."""
+        """Extract text content from a Gemini response and make it casual."""
         try:
             if hasattr(response, "text") and response.text and response.text.strip():
-                return response.text.strip()
+                text = response.text.strip()
+                return GeminiService._casualize_response(text)
         except (AttributeError, ValueError):
             pass
 
@@ -367,11 +405,48 @@ class GeminiService:
                 parts = getattr(candidates[0].content, "parts", [])
                 texts = [p.text.strip() for p in parts if hasattr(p, "text") and p.text and p.text.strip()]
                 if texts:
-                    return " ".join(texts)
+                    combined = " ".join(texts)
+                    return GeminiService._casualize_response(combined)
         except Exception:
             pass
 
-        return "Siap, perintah lu udah beres dijalankan!"
+        return "Siap, udah beres!"
+
+    @staticmethod
+    def _casualize_response(text: str) -> str:
+        """Transform formal AI response into casual, natural language."""
+        # Remove overly formal phrases
+        formal_phrases = [
+            ("Perintah \"", ""),
+            ("\" dipahami dan dieksekusi oleh Smart Home.", " udah beres!"),
+            (" dipahami dan dieksekusi oleh Smart Home.", " udah beres!"),
+            ("telah berhasil dijalankan", "udah jalan"),
+            ("telah berhasil", "udah beres"),
+            ("berhasil dijalankan", "udah jalan"),
+            ("Smart Home", ""),
+            ("sistem", ""),
+            ("perintah", ""),
+            ("Perintah", ""),
+            ("terdapat", "ada"),
+            ("Terdapat", "Ada"),
+            ("saat ini", "sekarang"),
+            ("Saat ini", "Sekarang"),
+        ]
+        
+        for old, new in formal_phrases:
+            text = text.replace(old, new)
+        
+        # Remove excessive punctuation
+        text = text.replace("..", ".")
+        text = text.strip()
+        
+        # If still too formal, add casual touch
+        if len(text) > 50 and "udah" not in text.lower():
+            # Too long and still formal, shorten it
+            if "." in text:
+                text = text.split(".")[0] + "!"
+        
+        return text
 
     def update_config(
         self,

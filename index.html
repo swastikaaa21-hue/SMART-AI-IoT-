@@ -1110,7 +1110,7 @@
                         {
                             id: 'init-1',
                             role: 'assistant',
-                            text: 'Halo! Gue Jarkvis, asisten pintar rumah lu 👋. Ketik perintah seperti "Matikan lampu kamar", "Nyalakan AC ruang tamu", "Berapa suhu ruangan?", atau ngobrol apa saja!',
+                            text: 'Hai! Gue Jarkvis, asisten rumah pintar lu 👋\n\nCoba deh bilang "nyalakan lampu kamar" atau "matikan AC" - gue langsung eksekusi!',
                             time: this.getCurrentTimeString()
                         }
                     ];
@@ -1606,7 +1606,7 @@
                     {
                         id: 'init-' + Date.now(),
                         role: 'assistant',
-                        text: 'Riwayat obrolan telah dibersihkan. Ada yang bisa gue bantu lagi untuk rumah lu?',
+                        text: 'Chat udah dibersihkan. Ada yang bisa gue bantu lagi?',
                         time: this.getCurrentTimeString()
                     }
                 ];
@@ -1811,7 +1811,7 @@
 
             handleOfflineAiCommand(query) {
                 const q = query.toLowerCase();
-                let reply = "Siap, perintah lu udah diproses!";
+                let reply = "Siap, udah gue jalanin!";
                 let handled = false;
 
                 if (q.includes('lampu')) {
@@ -1821,11 +1821,11 @@
                         roomMatch.devices.filter(d => d.type === 'light').forEach(d => {
                             d.power = action || (d.power === 'ON' ? 'OFF' : 'ON');
                         });
-                        reply = `Beres, lampu ${roomMatch.name} udah ${action === 'ON' ? 'dinyalakan' : 'dimatikan'}!`;
+                        reply = `Oke, lampu ${roomMatch.name} udah ${action === 'ON' ? 'nyala' : 'mati'}!`;
                         handled = true;
                     } else if (action) {
                         this.rooms.forEach(r => r.devices.filter(d => d.type === 'light').forEach(d => d.power = action));
-                        reply = `Beres, semua lampu rumah udah ${action === 'ON' ? 'dinyalakan' : 'dimatikan'}!`;
+                        reply = `Siap, semua lampu udah ${action === 'ON' ? 'nyala' : 'mati'}!`;
                         handled = true;
                     }
                 } else if (q.includes('ac')) {
@@ -1837,13 +1837,13 @@
                             const numMatch = q.match(/\d+/);
                             if (numMatch) d.temperature = parseInt(numMatch[0]);
                         });
-                        reply = `Aman, AC ${roomMatch.name} udah diset!`;
+                        reply = `Oke, AC ${roomMatch.name} udah diatur!`;
                         handled = true;
                     }
                 } else if (q.includes('tv')) {
                     const action = q.includes('mati') ? 'OFF' : 'ON';
                     this.rooms.forEach(r => r.devices.filter(d => d.type === 'tv').forEach(d => d.power = action));
-                    reply = `Siap, TV udah ${action === 'ON' ? 'dinyalakan' : 'dimatikan'}!`;
+                    reply = `Siap, TV udah ${action === 'ON' ? 'nyala' : 'mati'}!`;
                     handled = true;
                 } else if (q.includes('tidur')) {
                     const kamar = this.rooms.find(r => r.slug === 'kamar');
@@ -1852,19 +1852,23 @@
                             if (d.type === 'light' || d.type === 'tv') d.power = 'OFF';
                             if (d.type === 'ac') { d.power = 'ON'; d.temperature = 24; }
                         });
-                        reply = 'Mode tidur aktif! Lampu & TV kamar dimatikan, AC diset ke 24°C. Selamat istirahat!';
+                        reply = 'Oke, mode tidur aktif! Lampu & TV mati, AC 24°C. Selamat istirahat!';
                         handled = true;
                     }
-                } else if (q.includes('suhu')) {
-                    reply = 'Rata-rata suhu rumah saat ini 24.5°C dengan kelembapan 65% (Optimal).';
+                } else if (q.includes('suhu') || q.includes('temperature')) {
+                    reply = 'Suhu rata-rata rumah sekarang 24.5°C, adem nih!';
                     handled = true;
-                } else if (q.includes('halo') || q.includes('hai') || q.includes('pagi') || q.includes('malam') || q.includes('siang')) {
-                    reply = 'Halo! Gue Jarkvis, ada perangkat rumah yang mau dikontrol?';
+                } else if (q.includes('halo') || q.includes('hai') || q.includes('hello') || q.includes('pagi') || q.includes('malam') || q.includes('siang')) {
+                    reply = 'Hai! Ada yang bisa gue bantu?';
+                    handled = true;
+                } else if (q.includes('apa aja') || q.includes('ada apa')) {
+                    const deviceCount = this.rooms.reduce((sum, r) => sum + r.devices.length, 0);
+                    reply = `Ada ${deviceCount} perangkat nih: lampu, AC, TV, dan lain-lain. Mau kontrol yang mana?`;
                     handled = true;
                 }
 
                 if (!handled) {
-                    reply = `Perintah "${query}" dipahami dan dieksekusi oleh Smart Home.`;
+                    reply = `Udah gue proses perintah "${query}"!`;
                 }
 
                 this.renderAll();
