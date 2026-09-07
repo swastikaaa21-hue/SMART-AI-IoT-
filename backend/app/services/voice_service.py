@@ -14,11 +14,30 @@ import math
 import time
 from typing import Any, Callable, Optional
 
-import numpy as np
-import sounddevice as sd
-import soundfile as sf
-import speech_recognition as sr
-from gtts import gTTS
+try:
+    import numpy as np
+except ImportError:
+    np = None
+
+try:
+    import sounddevice as sd
+except Exception:
+    sd = None
+
+try:
+    import soundfile as sf
+except Exception:
+    sf = None
+
+try:
+    import speech_recognition as sr
+except ImportError:
+    sr = None
+
+try:
+    from gtts import gTTS
+except ImportError:
+    gTTS = None
 
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -36,10 +55,13 @@ class VoiceService:
     """
 
     def __init__(self) -> None:
-        self.recognizer = sr.Recognizer()
-        self.recognizer.energy_threshold = 300
-        self.recognizer.dynamic_energy_threshold = True
-        self.recognizer.pause_threshold = 1.0
+        if sr is not None:
+            self.recognizer = sr.Recognizer()
+            self.recognizer.energy_threshold = 300
+            self.recognizer.dynamic_energy_threshold = True
+            self.recognizer.pause_threshold = 1.0
+        else:
+            self.recognizer = None
         self.default_sample_rate = 16000
         self.default_language = "id-ID"
 
@@ -59,38 +81,41 @@ class VoiceService:
         if not audio_bytes or len(audio_bytes) < 100:
             return ""
 
+        audio_data = None
         # Step 1: Decode audio bytes to numpy array using soundfile
-        try:
-            audio_io = io.BytesIO(audio_bytes)
-            data, samplerate = sf.read(audio_io, dtype="int16")
-            if len(data.shape) > 1:
-                data = data.mean(axis=1).astype(np.int16)
+        if sf is not None and np is not None and sr is not None:
+            try:
+                audio_io = io.BytesIO(audio_bytes)
+                data, samplerate = sf.read(audio_io, dtype="int16")
+                if len(data.shape) > 1:
+                    data = data.mean(axis=1).astype(np.int16)
 
-            audio_data = sr.AudioData(data.tobytes(), samplerate, 2)
-        except Exception as e:
-            logger.warning("soundfile_decode_error", error=str(e))
-            # Fallback direct AudioData attempt if already standard PCM WAV
+                audio_data = sr.AudioData(data.tobytes(), samplerate, 2)
+            except Exception as e:
+                logger.warning("soundfile_decode_error", error=str(e))
+
+        if audio_data is None and sr is not None:
             try:
                 audio_data = sr.AudioData(audio_bytes, self.default_sample_rate, 2)
             except Exception:
-                logger.error("audio_decode_failed", error=str(e))
-                return ""
+                pass
 
         # Step 2: Primary STT via Google Speech Recognition
-        try:
-            transcript = self.recognizer.recognize_google(
-                audio_data,
-                language=language,
-                show_all=False,
-            )
-            if transcript and isinstance(transcript, str):
-                logger.info("google_stt_success", transcript=transcript)
-                return transcript.strip()
-        except sr.UnknownValueError:
-            logger.info("google_stt_unrecognized_speech")
-            return ""
-        except (sr.RequestError, Exception) as exc:
-            logger.warning("google_stt_failed_trying_gemini", error=str(exc))
+        if audio_data is not None and self.recognizer is not None and sr is not None:
+            try:
+                transcript = self.recognizer.recognize_google(
+                    audio_data,
+                    language=language,
+                    show_all=False,
+                )
+                if transcript and isinstance(transcript, str):
+                    logger.info("google_stt_success", transcript=transcript)
+                    return transcript.strip()
+            except sr.UnknownValueError:
+                logger.info("google_stt_unrecognized_speech")
+                return ""
+            except (sr.RequestError, Exception) as exc:
+                logger.warning("google_stt_failed_trying_gemini", error=str(exc))
 
         # Step 3: Fallback STT via Google Gemini Multimodal
         try:
@@ -136,11 +161,10 @@ class VoiceService:
         """
         Synthesize Indonesian text to natural-sounding MP3 audio bytes.
         """
-        if not text or not text.strip():
+        if not text or not text.strip() or gTTS is None:
             return b""
 
         clean_text = text.strip()
-        # Remove markdown bold/italic asterisks or brackets for cleaner pronunciation
         clean_text = clean_text.replace("**", "").replace("*", "").replace("#", "")
 
         try:
@@ -161,7 +185,7 @@ class VoiceService:
         """
         Play audio bytes (MP3 or WAV) through the default system output speaker.
         """
-        if not audio_bytes:
+        if not audio_bytes or sf is None or sd is None:
             return False
 
         try:
@@ -197,22 +221,18 @@ class VoiceService:
     ) -> bytes | None:
         """
         Record audio from the default microphone using dynamic Voice Activity Detection (VAD).
-
-        Features:
-        - Calibrates ambient background noise for 0.4s to adapt to current room noise level.
-        - Robust against intonation changes: catches whispering, normal talking, and loud speech.
-        - Automatically stops when the speaker stops talking (silence_limit seconds).
-        - Max duration safety cap to prevent endless recording.
-        - Returns standard 16-bit 16kHz mono WAV bytes.
         """
-        chunk_duration = 0.08  # 80ms per frame
+        if sd is None or np is None or sf is None:
+            logger.warning("microphone_libraries_not_installed")
+            return None
+
+        chunk_duration = 0.08
         chunk_samples = int(sample_rate * chunk_duration)
         channels = 1
 
         if status_callback:
             status_callback("calibrating", None)
 
-        # 1. Calibrate background ambient noise
         calibration_chunks = int(0.4 / chunk_duration)
         noise_rms_list: list[float] = []
 
@@ -229,13 +249,12 @@ class VoiceService:
                     noise_rms_list.append(rms)
 
                 ambient_noise = max(np.mean(noise_rms_list), 50.0) if noise_rms_list else 100.0
-                # Trigger threshold is set proportionally above noise floor
                 speech_threshold = max(ambient_noise * 1.6, 250.0)
 
                 if status_callback:
                     status_callback("listening", {"noise_floor": ambient_noise, "threshold": speech_threshold})
 
-                recorded_frames: list[np.ndarray] = []
+                recorded_frames: list[Any] = []
                 speech_detected = False
                 silence_start: float | None = None
                 start_time = time.time()
@@ -255,7 +274,6 @@ class VoiceService:
                     if status_callback:
                         status_callback("audio_level", {"rms": rms, "speech": speech_detected})
 
-                    # Check for speech activity
                     if rms >= speech_threshold:
                         if not speech_detected:
                             speech_detected = True
@@ -267,16 +285,13 @@ class VoiceService:
                             if silence_start is None:
                                 silence_start = time.time()
                             elif (time.time() - silence_start) >= silence_limit:
-                                # User stopped speaking for silence_limit seconds
                                 break
 
             if not recorded_frames or not speech_detected:
                 return None
 
-            # Combine recorded frames into a single numpy array
             audio_data = np.concatenate(recorded_frames, axis=0)
 
-            # Export to WAV in memory
             wav_io = io.BytesIO()
             sf.write(wav_io, audio_data, sample_rate, format="WAV", subtype="PCM_16")
             wav_io.seek(0)
@@ -287,9 +302,9 @@ class VoiceService:
             return None
 
     @staticmethod
-    def _calculate_rms(frame: np.ndarray) -> float:
+    def _calculate_rms(frame: Any) -> float:
         """Calculate Root Mean Square (RMS) energy of an audio frame."""
-        if len(frame) == 0:
+        if np is None or len(frame) == 0:
             return 0.0
         frame_float = frame.astype(np.float64)
         mean_sq = np.mean(frame_float ** 2)

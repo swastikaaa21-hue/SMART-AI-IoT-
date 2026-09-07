@@ -6,12 +6,24 @@ from __future__ import annotations
 
 import io
 import uuid
-import numpy as np
 import pytest
-import soundfile as sf
 from httpx import AsyncClient
 
+try:
+    import numpy as np
+    import soundfile as sf
+    from gtts import gTTS
+    has_audio_deps = True
+except ImportError:
+    has_audio_deps = False
+    np = None
+    sf = None
+    gTTS = None
+
 from app.services.voice_service import voice_service
+
+
+pytestmark = pytest.mark.skipif(not has_audio_deps, reason="Audio native dependencies not installed")
 
 
 @pytest.fixture
