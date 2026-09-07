@@ -1074,6 +1074,9 @@
                 this.backendConfig = null;
                 this.backendToken = null;
                 this.isKeyVisible = false;
+                this._ws = null;
+                this._reconnectTimeout = null;
+                this._wsReconnectAttempts = 0;
 
                 // AI Chat State
                 this.chatHistory = [];
@@ -1281,7 +1284,11 @@
 
                     this.populateRoomSelects();
                     this.renderAll();
+                    
+                    // Connect WebSocket AFTER data is loaded
                     this.connectRealtime();
+                    
+                    console.log('✅ Dashboard initialized with real-time sync');
                 } catch (e) {
                     console.error("fetchDataFromBackend error:", e);
                 }
@@ -1309,53 +1316,173 @@
                     this._ws = new WebSocket(`${base}/api/v1/ws?token=${this.backendToken}`);
 
                     this._ws.onopen = () => {
+                        console.log('🟢 WebSocket Connected - Real-time updates active');
                         const wsBadge = document.getElementById('settingWsStatus');
-                        if (wsBadge) { wsBadge.textContent = 'Tersambung (Aktif)'; wsBadge.className = 'font-bold text-status-success'; }
+                        if (wsBadge) { 
+                            wsBadge.textContent = '🟢 Tersambung Real-Time'; 
+                            wsBadge.className = 'font-bold text-status-success'; 
+                        }
+                        this.showToast('🔗 Real-time sync aktif!');
+                        
+                        // Clear any pending reconnection
+                        if (this._reconnectTimeout) {
+                            clearTimeout(this._reconnectTimeout);
+                            this._reconnectTimeout = null;
+                        }
                     };
 
                     this._ws.onmessage = (ev) => {
                         try {
                             const msg = JSON.parse(ev.data);
+                            console.log('📩 WebSocket message:', msg.type, msg.data);
+                            
                             if (msg.type === 'device_status_update') {
                                 this.updateDeviceStateFromWS(msg.data);
+                                this.sound.playClick('beep'); // Audio feedback
                             } else if (msg.type === 'telemetry_update') {
                                 this.updateTelemetryFromWS(msg.data);
+                            } else if (msg.type === 'connection_ack') {
+                                console.log('✅ WebSocket acknowledged:', msg.data.message);
                             }
-                        } catch (e) { }
+                        } catch (e) { 
+                            console.error('WebSocket message parse error:', e);
+                        }
+                    };
+
+                    this._ws.onerror = (err) => {
+                        console.error('❌ WebSocket error:', err);
                     };
 
                     this._ws.onclose = () => {
+                        console.log('🔴 WebSocket Disconnected - attempting reconnect...');
                         const wsBadge = document.getElementById('settingWsStatus');
-                        if (wsBadge) { wsBadge.textContent = 'Terputus (Menghubungkan ulang...)'; wsBadge.className = 'font-bold text-amber-500'; }
-                        setTimeout(() => this.connectRealtime(), 4000);
+                        if (wsBadge) { 
+                            wsBadge.textContent = '🔄 Menghubungkan ulang...'; 
+                            wsBadge.className = 'font-bold text-amber-500'; 
+                        }
+                        
+                        // Exponential backoff reconnection
+                        this._wsReconnectAttempts = (this._wsReconnectAttempts || 0) + 1;
+                        const delay = Math.min(1000 * Math.pow(2, this._wsReconnectAttempts), 30000);
+                        
+                        this._reconnectTimeout = setTimeout(() => {
+                            this._ws = null;
+                            this.connectRealtime();
+                        }, delay);
                     };
-                } catch (e) { }
+                } catch (e) { 
+                    console.error('WebSocket connection error:', e);
+                }
             }
 
             updateDeviceStateFromWS(data) {
                 let updated = false;
+                let deviceName = '';
+                let newState = '';
+                
                 this.rooms.forEach(room => {
                     const dev = room.devices.find(d => d.id === data.device_id);
                     if (dev) {
-                        if (data.state !== undefined) dev.power = (data.state === 'ON' || data.state === 'on') ? 'ON' : 'OFF';
+                        deviceName = dev.name;
+                        
+                        // Update state
+                        if (data.state !== undefined) {
+                            const prevState = dev.power;
+                            dev.power = (data.state === 'ON' || data.state === 'on') ? 'ON' : 'OFF';
+                            newState = dev.power;
+                            
+                            // Visual highlight animation for the changed device
+                            if (prevState !== newState) {
+                                this.highlightDeviceChange(data.device_id);
+                            }
+                        }
+                        
+                        // Update properties
                         if (data.brightness !== undefined) dev.brightness = data.brightness;
                         if (data.temperature !== undefined) dev.temperature = data.temperature;
+                        if (data.humidity !== undefined) dev.humidity = data.humidity;
+                        
+                        // Extra properties
                         if (data.extra) {
-                            if (data.extra.brightness) dev.brightness = data.extra.brightness;
-                            if (data.extra.temperature) dev.temperature = data.extra.temperature;
+                            if (data.extra.brightness !== undefined) dev.brightness = data.extra.brightness;
+                            if (data.extra.temperature !== undefined) dev.temperature = data.extra.temperature;
+                            if (data.extra.humidity !== undefined) dev.humidity = data.extra.humidity;
                         }
+                        
+                        dev.status = 'online';
                         updated = true;
                     }
                 });
 
                 if (updated) {
+                    console.log(`🔄 Device ${deviceName} updated to ${newState} via real-time sync`);
                     this.renderAll();
+                    
+                    // Show toast notification for remote changes
+                    if (deviceName && newState) {
+                        this.showToast(`🔔 ${deviceName} → ${newState}`, 'info');
+                    }
                 }
             }
 
+            highlightDeviceChange(deviceId) {
+                // Add visual feedback animation to changed device
+                setTimeout(() => {
+                    const deviceCards = document.querySelectorAll(`[data-device-id="${deviceId}"]`);
+                    deviceCards.forEach(card => {
+                        card.classList.add('ring-2', 'ring-brand', 'animate-pulse');
+                        setTimeout(() => {
+                            card.classList.remove('ring-2', 'ring-brand', 'animate-pulse');
+                        }, 1500);
+                    });
+                }, 100);
+            }
+
             updateTelemetryFromWS(data) {
-                if (data.telemetry && data.telemetry.temperature && document.getElementById('summaryHomeTemp')) {
-                    document.getElementById('summaryHomeTemp').textContent = data.telemetry.temperature;
+                console.log('📊 Telemetry update:', data);
+                
+                // Update dashboard temperature display
+                if (data.temperature !== undefined && document.getElementById('summaryHomeTemp')) {
+                    const tempEl = document.getElementById('summaryHomeTemp');
+                    const oldTemp = tempEl.textContent;
+                    tempEl.textContent = data.temperature;
+                    
+                    // Animate temperature change
+                    if (oldTemp !== data.temperature.toString()) {
+                        tempEl.classList.add('text-brand', 'font-bold');
+                        setTimeout(() => {
+                            tempEl.classList.remove('text-brand', 'font-bold');
+                        }, 2000);
+                    }
+                }
+                
+                // Update humidity display
+                if (data.humidity !== undefined && document.getElementById('summaryHomeHumid')) {
+                    const humidEl = document.getElementById('summaryHomeHumid');
+                    humidEl.textContent = Math.round(data.humidity);
+                }
+                
+                // Update device-specific telemetry
+                if (data.device_id) {
+                    this.rooms.forEach(room => {
+                        const dev = room.devices.find(d => d.id === data.device_id);
+                        if (dev) {
+                            if (data.temperature !== undefined) {
+                                dev.temperature = data.temperature;
+                                room.temperature = data.temperature; // Update room temp
+                            }
+                            if (data.humidity !== undefined) {
+                                dev.humidity = data.humidity;
+                                room.humidity = data.humidity;
+                            }
+                        }
+                    });
+                    
+                    // Refresh current room view if open
+                    if (this.currentRoomId) {
+                        const room = this.rooms.find(r => r.id === this.currentRoomId);
+                        if (room) this.renderRoomDetails(room);
+                    }
                 }
             }
 
@@ -1850,7 +1977,7 @@
                 if (dev.type === 'speaker') icon = '🔊';
 
                 return `
-                    <div class="interactive-card p-4 sm:p-5 rounded-[24px] bg-surface-card dark:bg-surface-darkCard border ${isOn ? 'border-brand/40 shadow-card-hover' : 'border-surface-border dark:border-surface-darkBorder'} flex flex-col justify-between space-y-3">
+                    <div data-device-id="${dev.id}" class="interactive-card p-4 sm:p-5 rounded-[24px] bg-surface-card dark:bg-surface-darkCard border ${isOn ? 'border-brand/40 shadow-card-hover' : 'border-surface-border dark:border-surface-darkBorder'} flex flex-col justify-between space-y-3 transition-all duration-300">
                         <div class="flex items-start justify-between">
                             <div class="flex items-center gap-2.5">
                                 <span class="text-2xl">${icon}</span>
@@ -1874,28 +2001,44 @@
                 const dev = room.devices.find(d => d.id === deviceId); if (!dev) return;
                 const nextOn = dev.power !== 'ON';
 
+                // Optimistic UI update (update immediately, rollback if fails)
+                const previousState = dev.power;
                 dev.power = nextOn ? 'ON' : 'OFF';
                 dev.status = 'online';
                 this.sound.playClick(nextOn ? 'beep' : 'off');
                 this.renderRoomDetails(room); this.renderHome(); this.renderDevicesGrid();
 
                 try {
-                    await this.sendDeviceCommand(dev.id, nextOn ? 'turn_on' : 'turn_off');
-                    this.showToast(`📡 MQTT ${dev.name}: ${dev.power}`);
+                    const result = await this.sendDeviceCommand(deviceId, nextOn ? 'turn_on' : 'turn_off');
+                    this.showToast(`✅ ${dev.name}: ${dev.power}`, 'success');
                 } catch (e) {
-                    this.showToast(`Perangkat ${dev.name}: ${dev.power}`);
+                    // Rollback on failure
+                    console.error('Command failed, rolling back:', e);
+                    dev.power = previousState;
+                    this.renderRoomDetails(room); this.renderHome(); this.renderDevicesGrid();
+                    this.showToast(`❌ Gagal mengontrol ${dev.name}`, 'error');
                 }
             }
 
             async updateDeviceControl(roomId, deviceId, field, val) {
                 const room = this.rooms.find(r => r.id === roomId); if (!room) return;
                 const dev = room.devices.find(d => d.id === deviceId); if (!dev) return;
+                
+                // Optimistic update
+                const previousValue = dev[field];
                 dev[field] = val;
                 this.sound.playClick('click');
                 this.renderRoomDetails(room);
+                
                 try {
                     await this.sendDeviceCommand(dev.id, 'set_value', val);
-                } catch (e) { }
+                    this.showToast(`✅ ${dev.name} ${field}: ${val}`, 'success');
+                } catch (e) {
+                    // Rollback on failure
+                    dev[field] = previousValue;
+                    this.renderRoomDetails(room);
+                    this.showToast(`❌ Gagal mengubah ${field}`, 'error');
+                }
             }
 
             async adjustAcTemp(roomId, deviceId, delta) {
@@ -1903,12 +2046,24 @@
                 const dev = room.devices.find(d => d.id === deviceId); if (!dev) return;
                 let next = (dev.temperature || 24) + delta;
                 if (next < 16) next = 16; if (next > 30) next = 30;
-                dev.temperature = next; room.temperature = next;
+                
+                // Optimistic update
+                const previousTemp = dev.temperature;
+                dev.temperature = next; 
+                room.temperature = next;
                 this.sound.playClick('beep');
                 this.renderRoomDetails(room); this.renderHome();
+                
                 try {
                     await this.sendDeviceCommand(dev.id, 'set_value', next);
-                } catch (e) { }
+                    this.showToast(`❄️ ${dev.name} suhu: ${next}°C`, 'success');
+                } catch (e) {
+                    // Rollback on failure
+                    dev.temperature = previousTemp;
+                    room.temperature = previousTemp;
+                    this.renderRoomDetails(room); this.renderHome();
+                    this.showToast(`❌ Gagal mengubah suhu`, 'error');
+                }
             }
 
             async adjustTvVolume(roomId, deviceId, delta) {
@@ -1916,18 +2071,29 @@
                 const dev = room.devices.find(d => d.id === deviceId); if (!dev) return;
                 let next = (dev.volume || 15) + delta;
                 if (next < 0) next = 0; if (next > 100) next = 100;
+                
+                // Optimistic update
+                const previousVol = dev.volume;
                 dev.volume = next;
                 this.sound.playClick('beep');
                 this.renderRoomDetails(room);
+                
                 try {
                     await this.sendDeviceCommand(dev.id, 'set_value', next);
-                } catch (e) { }
+                } catch (e) {
+                    // Rollback on failure
+                    dev.volume = previousVol;
+                    this.renderRoomDetails(room);
+                }
             }
 
             async activateCurrentRoomScene() {
                 if (!this.currentRoomId) return;
                 const room = this.rooms.find(r => r.id === this.currentRoomId); if (!room) return;
                 this.sound.playClick('scene');
+                
+                // Show processing toast
+                this.showToast(`🎬 Mengaktifkan ${room.scene?.title || 'Scene'}...`, 'info');
 
                 for (let d of room.devices) {
                     if (d.type === 'light' || d.type === 'tv') {
@@ -1940,8 +2106,14 @@
                         this.sendDeviceCommand(d.id, 'set_value', 24).catch(() => {});
                     }
                 }
-                this.showToast(`Scene ${room.scene?.title || 'Otomatis'} diaktifkan`);
-                this.renderRoomDetails(room); this.renderHome(); this.renderDevicesGrid();
+                
+                // Delay to show all changes
+                setTimeout(() => {
+                    this.showToast(`✨ Scene ${room.scene?.title || 'Otomatis'} aktif!`, 'success');
+                    this.renderRoomDetails(room); 
+                    this.renderHome(); 
+                    this.renderDevicesGrid();
+                }, 500);
             }
 
             // [ Remote Tab ]
@@ -1973,7 +2145,7 @@
             generateCardHTML(dev) {
                 const isOn = dev.power === 'ON';
                 let icon = '💡'; if (dev.type === 'ac') icon = '❄️'; if (dev.type === 'tv') icon = '📺'; if (dev.type === 'projector') icon = '📽️'; if (dev.type === 'speaker') icon = '🔊';
-                return `<div onclick="window.app.toggleFlatDevicePower('${dev.id}')" class="interactive-card relative flex flex-col justify-between h-44 p-4 rounded-[26px] bg-surface-card dark:bg-surface-darkCard border ${isOn ? 'border-brand/40 shadow-sm' : 'border-surface-border dark:border-surface-darkBorder'} cursor-pointer hover:border-brand/40"><div class="flex justify-between"><span class="text-2xl">${icon}</span><span class="w-2.5 h-2.5 rounded-full ${isOn ? 'bg-status-success pulse-subtle' : 'bg-gray-300 dark:bg-gray-600'}"></span></div><div class="mt-auto"><span class="text-[9px] uppercase tracking-wider font-bold text-brand">${dev.type}</span><h3 class="text-sm font-semibold truncate">${dev.name}</h3><span class="text-[10px] text-content-muted">${dev.roomName} • ${dev.power}</span></div></div>`;
+                return `<div data-device-id="${dev.id}" onclick="window.app.toggleFlatDevicePower('${dev.id}')" class="interactive-card relative flex flex-col justify-between h-44 p-4 rounded-[26px] bg-surface-card dark:bg-surface-darkCard border ${isOn ? 'border-brand/40 shadow-sm' : 'border-surface-border dark:border-surface-darkBorder'} cursor-pointer hover:border-brand/40 transition-all duration-300"><div class="flex justify-between"><span class="text-2xl">${icon}</span><span class="w-2.5 h-2.5 rounded-full ${isOn ? 'bg-status-success pulse-subtle' : 'bg-gray-300 dark:bg-gray-600'}"></span></div><div class="mt-auto"><span class="text-[9px] uppercase tracking-wider font-bold text-brand">${dev.type}</span><h3 class="text-sm font-semibold truncate">${dev.name}</h3><span class="text-[10px] text-content-muted">${dev.roomName} • ${dev.power}</span></div></div>`;
             }
             async toggleFlatDevicePower(deviceId) {
                 for (let r of this.rooms) {
@@ -2214,14 +2386,30 @@
                 }
             }
 
-            showToast(message) {
+            showToast(message, type = 'default') {
                 const container = document.getElementById('toastContainer'); if (!container) return;
                 const toast = document.createElement('div');
-                toast.className = 'px-4 py-2.5 rounded-2xl bg-gray-900/90 dark:bg-white/95 text-white dark:text-gray-900 text-xs font-semibold shadow-lg backdrop-blur-md flex items-center justify-between gap-3 transition-all transform duration-300 opacity-0 -translate-y-2';
-                toast.innerHTML = `<div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-brand"></span><span>${message}</span></div>`;
+                
+                // Different styles based on type
+                let bgClass = 'bg-gray-900/90 dark:bg-white/95 text-white dark:text-gray-900';
+                let iconColor = 'bg-brand';
+                
+                if (type === 'success') {
+                    bgClass = 'bg-emerald-600 text-white';
+                    iconColor = 'bg-white';
+                } else if (type === 'error') {
+                    bgClass = 'bg-red-600 text-white';
+                    iconColor = 'bg-white';
+                } else if (type === 'info') {
+                    bgClass = 'bg-blue-600 text-white';
+                    iconColor = 'bg-white';
+                }
+                
+                toast.className = `px-4 py-2.5 rounded-2xl ${bgClass} text-xs font-semibold shadow-lg backdrop-blur-md flex items-center justify-between gap-3 transition-all transform duration-300 opacity-0 -translate-y-2`;
+                toast.innerHTML = `<div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full ${iconColor}"></span><span>${message}</span></div>`;
                 container.appendChild(toast);
                 requestAnimationFrame(() => toast.classList.remove('opacity-0', '-translate-y-2'));
-                setTimeout(() => { toast.classList.add('opacity-0', '-translate-y-2'); setTimeout(() => toast.remove(), 300); }, 2500);
+                setTimeout(() => { toast.classList.add('opacity-0', '-translate-y-2'); setTimeout(() => toast.remove(), 300); }, 3000);
             }
 
             renderAll() {
