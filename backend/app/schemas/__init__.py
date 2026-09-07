@@ -27,6 +27,11 @@ from app.schemas.chat import (
     AIChatRequest,
     AIChatResponse,
 )
+from app.schemas.voice import (
+    VoiceTranscribeResponse,
+    VoiceSynthesizeRequest,
+    VoiceChatResponse,
+)
 from app.schemas.common import (
     HealthResponse,
     PaginatedResponse,
