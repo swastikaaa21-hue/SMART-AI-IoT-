@@ -82,6 +82,8 @@ async def create_device(
         name=body.name,
         device_type=body.device_type,
         room_id=body.room_id,
+        state=body.state or "off",
+        is_online=True,
         firmware_version=body.firmware_version,
         description=body.description,
         extra_metadata=body.extra_metadata,

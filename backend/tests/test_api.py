@@ -84,3 +84,82 @@ class TestDeviceEndpoints:
     async def test_list_devices_unauthenticated(self, client: AsyncClient):
         response = await client.get("/api/v1/devices")
         assert response.status_code == 401  # Missing auth header
+
+
+@pytest.mark.asyncio
+class TestSystemEndpoints:
+    async def test_get_system_config(self, client: AsyncClient):
+        response = await client.get("/api/v1/system/config")
+        assert response.status_code == 200
+        data = response.json()
+        assert "gemini_api_key" in data
+        assert "mqtt_broker" in data
+        assert "app_name" in data
+
+    async def test_get_system_status(self, client: AsyncClient):
+        response = await client.get("/api/v1/system/status")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert "total_rooms" in data
+        assert "total_devices" in data
+
+    async def test_seed_system_data(self, client: AsyncClient):
+        # Register and login user first
+        await client.post(
+            "/api/v1/auth/register",
+            json={"email": "seeduser@example.com", "password": "mypassword1", "full_name": "Seed User"},
+        )
+        login_res = await client.post(
+            "/api/v1/auth/login",
+            data={"username": "seeduser@example.com", "password": "mypassword1"},
+        )
+        token = login_res.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        seed_res = await client.post("/api/v1/system/seed", headers=headers)
+        assert seed_res.status_code == 200
+        data = seed_res.json()
+        assert data["status"] == "success"
+        assert data["rooms_count"] >= 4
+        assert data["devices_count"] >= 10
+
+        # Verify rooms are visible
+        rooms_res = await client.get("/api/v1/rooms", headers=headers)
+        assert rooms_res.status_code == 200
+        assert rooms_res.json()["total"] >= 4
+
+        # Test command sending to dev-km-1
+        cmd_res = await client.post(
+            "/api/v1/commands/dev-km-1",
+            headers=headers,
+            json={"action": "turn_on"},
+        )
+        assert cmd_res.status_code == 200
+        assert cmd_res.json()["status"] in ["sent", "failed"]
+
+        # Test set_value command
+        val_res = await client.post(
+            "/api/v1/commands/dev-km-1",
+            headers=headers,
+            json={"action": "set_value", "value": 95},
+        )
+        assert val_res.status_code == 200
+        assert val_res.json()["status"] in ["sent", "failed"]
+
+        # Test update config
+        update_cfg = await client.post(
+            "/api/v1/system/config",
+            headers=headers,
+            json={"gemini_model": "gemini-3.5-flash-lite"},
+        )
+        assert update_cfg.status_code == 200
+        assert update_cfg.json()["gemini_model"] == "gemini-3.5-flash-lite"
+
+    async def test_ui_endpoints(self, client: AsyncClient):
+        ui_res = await client.get("/ui")
+        assert ui_res.status_code == 200
+        assert "html" in ui_res.headers.get("content-type", "")
+
+        app_res = await client.get("/app")
+        assert app_res.status_code == 200

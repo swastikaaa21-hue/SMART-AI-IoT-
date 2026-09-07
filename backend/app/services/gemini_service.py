@@ -371,7 +371,28 @@ class GeminiService:
         except Exception:
             pass
 
-        return "Baik, perintah Anda telah diterima dan diproses oleh sistem SMART AI."
+        return "Siap, perintah lu udah beres dijalankan!"
+
+    def update_config(
+        self,
+        api_key: str | None = None,
+        model: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ) -> bool:
+        """Update runtime Gemini configuration and reinitialize."""
+        if api_key is not None:
+            settings.GEMINI_API_KEY = api_key.strip()
+        if model is not None:
+            settings.GEMINI_MODEL = model.strip()
+        if temperature is not None:
+            settings.GEMINI_TEMPERATURE = temperature
+        if max_tokens is not None:
+            settings.GEMINI_MAX_TOKENS = max_tokens
+
+        self.clear_all_sessions()
+        self.initialise()
+        return self._initialised
 
     def clear_session(self, session_id: str) -> None:
         """Remove a chat session's history."""

@@ -64,10 +64,32 @@ class DeviceManager:
         return devices, total
 
     async def get_device(self, db: AsyncSession, device_id: str) -> Device | None:
-        """Get a single device by its device_id string."""
+        """Get a single device by its device_id string or matching name."""
+        # 1. Exact device_id match
         result = await db.execute(
             select(Device)
             .where(Device.device_id == device_id)
+            .options(selectinload(Device.room))
+        )
+        dev = result.scalar_one_or_none()
+        if dev:
+            return dev
+
+        # 2. Case-insensitive device_id match
+        result = await db.execute(
+            select(Device)
+            .where(func.lower(Device.device_id) == device_id.lower())
+            .options(selectinload(Device.room))
+        )
+        dev = result.scalar_one_or_none()
+        if dev:
+            return dev
+
+        # 3. Fallback: match by name or slugified name
+        clean_name = device_id.lower().replace("-", " ").replace("_", " ").strip()
+        result = await db.execute(
+            select(Device)
+            .where(func.lower(Device.name) == clean_name)
             .options(selectinload(Device.room))
         )
         return result.scalar_one_or_none()
@@ -206,11 +228,36 @@ class DeviceManager:
         db.add(command_log)
         await db.flush()
 
-        # If MQTT is not connected, still update DB state optimistically
-        if published or not mqtt_service.is_connected:
-            device.state = target_state
-            device.updated_at = datetime.now(timezone.utc)
-            await db.flush()
+        # Update DB state optimistically
+        device.state = target_state
+        if action == CommandAction.SET_VALUE.value and value is not None:
+            try:
+                num_val = float(value)
+                if device.device_type == "ac":
+                    device.temperature = num_val
+                elif device.device_type == "light":
+                    device.brightness = int(num_val)
+            except (ValueError, TypeError):
+                pass
+        device.updated_at = datetime.now(timezone.utc)
+        await db.flush()
+
+        # Broadcast update to connected frontend WebSockets
+        try:
+            room_slug = device.room.slug if device.room else "unknown"
+            extra_ws: dict[str, Any] = {}
+            if device.brightness is not None:
+                extra_ws["brightness"] = device.brightness
+            if device.temperature is not None:
+                extra_ws["temperature"] = device.temperature
+            await ws_manager.broadcast_device_status(
+                device_id=device.device_id,
+                room_slug=room_slug,
+                state=device.state,
+                extra=extra_ws if extra_ws else None,
+            )
+        except Exception:
+            pass
 
         logger.info(
             "device_command_sent",

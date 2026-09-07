@@ -12,10 +12,21 @@ This is the central FastAPI application factory that wires together:
 
 from __future__ import annotations
 
+import sys
+import asyncio
+
+if sys.platform == "win32":
+    try:
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    except Exception:
+        pass
+
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
-from fastapi import FastAPI
+from pathlib import Path
+from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -115,10 +126,11 @@ def create_app() -> FastAPI:
     # Request logging
     application.add_middleware(RequestLoggingMiddleware)
 
-    # CORS
+    # CORS - allow all local and network origins for seamless frontend UI integration
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.BACKEND_CORS_ORIGINS,
+        allow_origins=["*"] if settings.DEBUG else settings.BACKEND_CORS_ORIGINS,
+        allow_origin_regex=".*" if settings.DEBUG else None,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -133,6 +145,19 @@ def create_app() -> FastAPI:
 
     # --- Routes ---
     application.include_router(api_router, prefix=settings.API_V1_PREFIX)
+
+    # Path to frontend UI UX
+    frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
+    ui_html_path = frontend_dir / "UI UX.html"
+
+    # --- UI and Health Endpoints ---
+    @application.get("/ui", tags=["UI"])
+    @application.get("/app", tags=["UI"])
+    async def serve_ui():
+        """Serve the Smart Home UI/UX Dashboard."""
+        if ui_html_path.is_file():
+            return FileResponse(str(ui_html_path), media_type="text/html")
+        return HTMLResponse("<h1>UI file not found</h1>", status_code=404)
 
     # --- Health Check (outside versioned prefix) ---
     @application.get("/health", response_model=HealthResponse, tags=["Health"])
@@ -152,12 +177,17 @@ def create_app() -> FastAPI:
         )
 
     @application.get("/", tags=["Root"])
-    async def root():
-        """Root endpoint with API information."""
+    async def root(request: Request):
+        """Root endpoint - serves UI if HTML requested, otherwise API metadata."""
+        accept_header = request.headers.get("accept", "")
+        if "text/html" in accept_header and ui_html_path.is_file():
+            return FileResponse(str(ui_html_path), media_type="text/html")
+
         return {
             "name": settings.APP_NAME,
             "version": settings.APP_VERSION,
             "docs": "/docs" if settings.DEBUG else "disabled",
+            "ui": "/ui",
             "health": "/health",
             "api": settings.API_V1_PREFIX,
         }

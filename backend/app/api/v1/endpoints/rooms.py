@@ -38,6 +38,15 @@ async def list_rooms(
     )
     total = count_result.scalar_one()
 
+    # If user has 0 rooms, auto-seed default rooms
+    if total == 0:
+        from app.services.seed_service import seed_user_default_data
+        await seed_user_default_data(db, user.id, reset=False)
+        count_result = await db.execute(
+            select(func.count()).select_from(base_query.subquery())
+        )
+        total = count_result.scalar_one()
+
     result = await db.execute(
         base_query
         .order_by(Room.created_at)

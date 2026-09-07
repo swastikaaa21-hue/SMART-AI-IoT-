@@ -36,6 +36,23 @@ from app.utils.exceptions import NotFoundError
 router = APIRouter()
 
 
+def _normalize_room_slug(slug_or_name: str | None) -> str:
+    if not slug_or_name:
+        return ""
+    clean = slug_or_name.lower().strip().replace(" ", "-").replace("_", "-")
+    aliases = {
+        "bedroom": "kamar",
+        "kamar-tidur": "kamar",
+        "living-room": "ruang-tamu",
+        "livingroom": "ruang-tamu",
+        "ruang-keluarga": "ruang-tamu",
+        "meeting-room": "ruang-rapat",
+        "office": "ruang-rapat",
+        "ruang-kerja": "ruang-rapat",
+    }
+    return aliases.get(clean, clean)
+
+
 async def _execute_function(
     name: str,
     args: dict[str, Any],
@@ -47,10 +64,18 @@ async def _execute_function(
     This is the bridge between AI intent and actual device operations.
     """
     if name == "control_device":
+        dev_id = args.get("device_id", "")
+        action = args.get("action", "")
+        # Normalize action if natural word was used
+        if action in ["nyalakan", "hidupkan", "on"]:
+            action = "turn_on"
+        elif action in ["matikan", "padamkan", "off"]:
+            action = "turn_off"
+
         result = await device_manager.send_command(
             db=db,
-            device_id=args.get("device_id", ""),
-            action=args.get("action", ""),
+            device_id=dev_id,
+            action=action,
             value=args.get("value"),
             source="ai",
         )
@@ -73,7 +98,8 @@ async def _execute_function(
         }
 
     elif name == "list_devices":
-        room_slug = args.get("room")
+        raw_room = args.get("room")
+        room_slug = _normalize_room_slug(raw_room) if raw_room else None
         dtype = args.get("device_type")
 
         room_id = None
@@ -127,15 +153,24 @@ async def _execute_function(
         }
 
     elif name == "control_room_devices":
-        room_slug = args.get("room", "")
+        raw_room = args.get("room", "")
+        room_slug = _normalize_room_slug(raw_room)
         action = args.get("action", "")
+        if action in ["nyalakan", "hidupkan", "on"]:
+            action = "turn_on"
+        elif action in ["matikan", "padamkan", "off"]:
+            action = "turn_off"
         dtype = args.get("device_type")
 
-        # Find the room
+        # Find the room by normalized slug or like name
         result = await db.execute(select(Room).where(Room.slug == room_slug))
         room = result.scalar_one_or_none()
         if not room:
-            return {"error": f"Room '{room_slug}' not found"}
+            result = await db.execute(select(Room).where(func.lower(Room.name) == raw_room.lower().strip()))
+            room = result.scalar_one_or_none()
+
+        if not room:
+            return {"error": f"Room '{raw_room}' not found"}
 
         # Get devices in that room
         query = select(Device).where(Device.room_id == room.id)
@@ -145,7 +180,7 @@ async def _execute_function(
         devices = list(device_result.scalars().all())
 
         if not devices:
-            return {"error": f"No devices found in room '{room_slug}'"}
+            return {"error": f"No devices found in room '{room.name}'"}
 
         results = []
         affected_devices = []
@@ -161,7 +196,7 @@ async def _execute_function(
 
         success_count = sum(1 for r in results if r.get("success"))
         return {
-            "room": room_slug,
+            "room": room.slug,
             "action": action,
             "total_devices": len(devices),
             "success_count": success_count,

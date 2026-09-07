@@ -29,6 +29,8 @@ class DeviceType(str, Enum):
     LIGHT = "light"
     FAN = "fan"
     AC = "ac"
+    TV = "tv"
+    PROJECTOR = "projector"
     SENSOR = "sensor"
     RELAY = "relay"
     DOOR_LOCK = "door_lock"
@@ -36,6 +38,7 @@ class DeviceType(str, Enum):
     CURTAIN = "curtain"
     SPEAKER = "speaker"
     THERMOSTAT = "thermostat"
+    OTHER = "other"
 
 
 # ── Room Types ───────────────────────────────────────────────
@@ -48,6 +51,9 @@ class RoomType(str, Enum):
     GARDEN = "garden"
     OFFICE = "office"
     HALLWAY = "hallway"
+    STUDIO = "studio"
+    MEETING_ROOM = "meeting_room"
+    OTHER = "other"
 
 
 # ── Command Actions ─────────────────────────────────────────

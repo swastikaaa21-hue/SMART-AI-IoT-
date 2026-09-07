@@ -15,6 +15,7 @@ class DeviceCreate(BaseModel):
     name: str = Field(..., max_length=150, examples=["Living Room Light"])
     device_type: str = Field(..., max_length=50, examples=["light"])
     room_id: uuid.UUID
+    state: str | None = "off"
     firmware_version: str | None = None
     description: str | None = None
     extra_metadata: dict | None = None
