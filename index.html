@@ -1022,36 +1022,36 @@
                 id: 'kamar', slug: 'kamar', name: 'Kamar', icon: '🛏️', temperature: 24, humidity: 65,
                 scene: { icon: '🌙', title: 'Mode Tidur', desc: 'Matikan TV, matikan lampu, setel AC 24°C' },
                 devices: [
-                    { id: 'dev-km-1', name: 'Lampu Kamar', type: 'light', power: 'ON', status: 'online', brightness: 80 },
-                    { id: 'dev-km-2', name: 'AC Kamar', type: 'ac', power: 'ON', status: 'online', temperature: 24, mode: 'Cool', fanSpeed: 'Auto' },
-                    { id: 'dev-km-3', name: 'Samsung TV', type: 'tv', power: 'OFF', status: 'offline', channel: 7, volume: 18, input: 'HDMI 1' },
-                    { id: 'dev-km-4', name: 'Smart Tirai', type: 'curtain', power: 'ON', status: 'online', position: 'Open', percent: 100 }
+                    { id: 'dev-km-1', name: 'Lampu Kamar', type: 'light', power: 'OFF', status: 'online', brightness: 80 },
+                    { id: 'dev-km-2', name: 'AC Kamar', type: 'ac', power: 'OFF', status: 'online', temperature: 24, mode: 'Cool', fanSpeed: 'Auto' },
+                    { id: 'dev-km-3', name: 'Samsung TV', type: 'tv', power: 'OFF', status: 'online', channel: 7, volume: 18, input: 'HDMI 1' },
+                    { id: 'dev-km-4', name: 'Smart Tirai', type: 'curtain', power: 'OFF', status: 'online', position: 'Closed', percent: 0 }
                 ]
             },
             {
                 id: 'ruang-tamu', slug: 'ruang-tamu', name: 'Ruang Tamu', icon: '🛋️', temperature: 25, humidity: 64,
                 scene: { icon: '🎬', title: 'Movie Time', desc: 'Lampu ambient ON, TV & Speaker aktif' },
                 devices: [
-                    { id: 'dev-rt-1', name: 'Lampu Utama', type: 'light', power: 'ON', status: 'online', brightness: 100 },
-                    { id: 'dev-rt-2', name: 'Ambient Light', type: 'light', power: 'ON', status: 'online', brightness: 45 },
-                    { id: 'dev-rt-3', name: 'LG Smart TV', type: 'tv', power: 'ON', status: 'online', channel: 12, volume: 22, input: 'HDMI 2' },
-                    { id: 'dev-rt-4', name: 'Sony Soundbar', type: 'speaker', power: 'ON', status: 'online', volume: 35, playing: true }
+                    { id: 'dev-rt-1', name: 'Lampu Utama', type: 'light', power: 'OFF', status: 'online', brightness: 100 },
+                    { id: 'dev-rt-2', name: 'Ambient Light', type: 'light', power: 'OFF', status: 'online', brightness: 45 },
+                    { id: 'dev-rt-3', name: 'LG Smart TV', type: 'tv', power: 'OFF', status: 'online', channel: 12, volume: 22, input: 'HDMI 2' },
+                    { id: 'dev-rt-4', name: 'Sony Soundbar', type: 'speaker', power: 'OFF', status: 'online', volume: 35, playing: false }
                 ]
             },
             {
                 id: 'ruang-rapat', slug: 'ruang-rapat', name: 'Ruang Rapat', icon: '💼', temperature: 23, humidity: 62,
                 scene: { icon: '💼', title: 'Meeting Mode', desc: 'Nyalakan Epson Projector, AC 23°C' },
                 devices: [
-                    { id: 'dev-rr-1', name: 'Epson Projector', type: 'projector', power: 'ON', status: 'online', input: 'HDMI 1', ecoMode: false },
-                    { id: 'dev-rr-2', name: 'Daikin AC Rapat', type: 'ac', power: 'ON', status: 'online', temperature: 23, mode: 'Cool', fanSpeed: 'Med' },
-                    { id: 'dev-rr-3', name: 'Lampu Rapat Panel', type: 'light', power: 'ON', status: 'online', brightness: 90 }
+                    { id: 'dev-rr-1', name: 'Epson Projector', type: 'projector', power: 'OFF', status: 'online', input: 'HDMI 1', ecoMode: false },
+                    { id: 'dev-rr-2', name: 'Daikin AC Rapat', type: 'ac', power: 'OFF', status: 'online', temperature: 23, mode: 'Cool', fanSpeed: 'Med' },
+                    { id: 'dev-rr-3', name: 'Lampu Rapat Panel', type: 'light', power: 'OFF', status: 'online', brightness: 90 }
                 ]
             },
             {
                 id: 'studio', slug: 'studio', name: 'Studio', icon: '🎨', temperature: 24, humidity: 66,
                 scene: { icon: '🎨', title: 'Working Mode', desc: 'Nyalakan lampu studio 100% dan AC 24°C' },
                 devices: [
-                    { id: 'dev-st-1', name: 'Sharp AC', type: 'ac', power: 'ON', status: 'online', temperature: 24, mode: 'Cool', fanSpeed: 'Auto' },
+                    { id: 'dev-st-1', name: 'Sharp AC', type: 'ac', power: 'OFF', status: 'online', temperature: 24, mode: 'Cool', fanSpeed: 'Auto' },
                     { id: 'dev-st-2', name: 'Lampu Studio', type: 'light', power: 'OFF', status: 'online', brightness: 100 }
                 ]
             }

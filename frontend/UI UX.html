@@ -1025,7 +1025,7 @@
         class SmartHomeApp {
             constructor() {
                 this.sound = new SoundEngine();
-                this.rooms = JSON.parse(JSON.stringify(INITIAL_ROOMS));
+                this.rooms = [];
                 this.schedules = [];
                 this.activeRoute = 'home';
                 this.currentRoomId = null;
