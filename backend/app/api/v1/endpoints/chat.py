@@ -125,7 +125,8 @@ async def _execute_function(
                     "type": d.device_type,
                     "state": d.state,
                     "is_online": d.is_online,
-                    "room": str(d.room_id) if d.room_id else None,
+                    "room_name": d.room.name if d.room else None,
+                    "room_slug": d.room.slug if d.room else None,
                 }
                 for d in devices
             ],
@@ -162,15 +163,33 @@ async def _execute_function(
             action = "turn_off"
         dtype = args.get("device_type")
 
-        # Find the room by normalized slug or like name
-        result = await db.execute(select(Room).where(Room.slug == room_slug))
-        room = result.scalar_one_or_none()
-        if not room:
-            result = await db.execute(select(Room).where(func.lower(Room.name) == raw_room.lower().strip()))
+        # Robust room resolution: UUID, Slug, Exact Name, or Fuzzy Match
+        room = None
+        try:
+            r_uuid = uuid.UUID(str(raw_room).strip())
+            r_res = await db.execute(select(Room).where(Room.id == r_uuid))
+            room = r_res.scalar_one_or_none()
+        except (ValueError, TypeError, AttributeError):
+            pass
+
+        if not room and room_slug:
+            result = await db.execute(select(Room).where(Room.slug == room_slug))
             room = result.scalar_one_or_none()
 
         if not room:
-            return {"error": f"Room '{raw_room}' not found"}
+            result = await db.execute(select(Room).where(func.lower(Room.name) == str(raw_room).lower().strip()))
+            room = result.scalar_one_or_none()
+
+        if not room:
+            clean_r = str(raw_room).lower().replace("-", " ").replace("_", " ").strip()
+            all_rooms = (await db.execute(select(Room))).scalars().all()
+            for r in all_rooms:
+                if clean_r in r.name.lower() or clean_r in r.slug.lower() or r.slug.lower().replace("-", " ") in clean_r:
+                    room = r
+                    break
+
+        if not room:
+            return {"success": False, "error": f"Room '{raw_room}' not found"}
 
         # Get devices in that room
         query = select(Device).where(Device.room_id == room.id)
@@ -180,7 +199,7 @@ async def _execute_function(
         devices = list(device_result.scalars().all())
 
         if not devices:
-            return {"error": f"No devices found in room '{room.name}'"}
+            return {"success": False, "error": f"No devices found in room '{room.name}'"}
 
         results = []
         affected_devices = []
@@ -196,7 +215,8 @@ async def _execute_function(
 
         success_count = sum(1 for r in results if r.get("success"))
         return {
-            "room": room.slug,
+            "success": success_count > 0,
+            "room": room.name,
             "action": action,
             "total_devices": len(devices),
             "success_count": success_count,
@@ -250,9 +270,16 @@ async def send_chat_message(
     async def executor(name: str, args: dict) -> dict:
         return await _execute_function(name, args, db)
 
+    # Build contextual prompt if room is known
+    prompt_to_ai = (
+        f"[Konteks Ruangan: User sedang membuka ruangan '{body.room_context}']\n{body.message}"
+        if body.room_context
+        else body.message
+    )
+
     # Process through Gemini
     ai_result = await gemini_service.chat(
-        message=body.message,
+        message=prompt_to_ai,
         session_id=str(session.id),
         function_executor=executor,
     )

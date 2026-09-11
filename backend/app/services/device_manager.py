@@ -7,6 +7,7 @@ MQTT commands, database persistence, and WebSocket notifications.
 
 from __future__ import annotations
 
+import re
 import time
 import uuid
 from datetime import datetime, timezone
@@ -64,7 +65,10 @@ class DeviceManager:
         return devices, total
 
     async def get_device(self, db: AsyncSession, device_id: str) -> Device | None:
-        """Get a single device by its device_id string or matching name."""
+        """Get a single device by its device_id string or matching name/alias."""
+        if not device_id:
+            return None
+
         # 1. Exact device_id match
         result = await db.execute(
             select(Device)
@@ -85,14 +89,69 @@ class DeviceManager:
         if dev:
             return dev
 
-        # 3. Fallback: match by name or slugified name
+        # 3. Fallback: match by exact name or slugified name
         clean_name = device_id.lower().replace("-", " ").replace("_", " ").strip()
         result = await db.execute(
             select(Device)
             .where(func.lower(Device.name) == clean_name)
             .options(selectinload(Device.room))
         )
-        return result.scalar_one_or_none()
+        dev = result.scalar_one_or_none()
+        if dev:
+            return dev
+
+        # 4. Smart fuzzy match against all devices
+        all_res = await db.execute(
+            select(Device).options(selectinload(Device.room))
+        )
+        all_devices = list(all_res.scalars().all())
+
+        # Substring / partial name match
+        for d in all_devices:
+            d_name = d.name.lower()
+            if clean_name in d_name or d_name in clean_name:
+                return d
+
+        # Semantic keywords mapping (Room + Device Type)
+        term_map = {
+            "light": "light", "lampu": "light", "lamp": "light", "penerangan": "light",
+            "ac": "ac", "aircond": "ac", "aircon": "ac", "cooler": "ac", "pendingin": "ac",
+            "tv": "tv", "television": "tv", "televisi": "tv",
+            "fan": "fan", "kipas": "fan", "exhaust": "fan",
+            "curtain": "curtain", "tirai": "curtain", "gorden": "curtain",
+            "speaker": "speaker", "soundbar": "speaker", "audio": "speaker",
+            "projector": "projector", "proyektor": "projector",
+            "kamar": "kamar", "bedroom": "kamar", "bed": "kamar", "tidur": "kamar",
+            "tamu": "ruang-tamu", "living": "ruang-tamu", "keluarga": "ruang-tamu",
+            "dapur": "dapur", "kitchen": "dapur",
+            "rapat": "ruang-rapat", "meeting": "ruang-rapat", "office": "ruang-rapat", "kerja": "ruang-rapat",
+        }
+
+        tokens = set(re.findall(r"[a-zA-Z0-9]+", device_id.lower()))
+        mapped_types = set()
+        mapped_rooms = set()
+        for t in tokens:
+            if t in term_map:
+                val = term_map[t]
+                if val in ["light", "ac", "tv", "fan", "curtain", "speaker", "projector"]:
+                    mapped_types.add(val)
+                else:
+                    mapped_rooms.add(val)
+
+        # Match both room and device type
+        if mapped_types and mapped_rooms:
+            for d in all_devices:
+                r_slug = d.room.slug.replace("_", "-") if d.room else ""
+                if d.device_type in mapped_types and r_slug in mapped_rooms:
+                    return d
+
+        # Match device type if only 1 matching device
+        if mapped_types:
+            matching = [d for d in all_devices if d.device_type in mapped_types]
+            if len(matching) == 1:
+                return matching[0]
+
+        return None
 
     async def get_device_by_uuid(self, db: AsyncSession, device_uuid: uuid.UUID) -> Device | None:
         """Get a single device by its UUID primary key."""
@@ -261,7 +320,7 @@ class DeviceManager:
 
         logger.info(
             "device_command_sent",
-            device_id=device_id,
+            device_id=device.device_id,
             action=action,
             target_state=target_state,
             published=published,
@@ -269,7 +328,7 @@ class DeviceManager:
 
         return {
             "success": True,
-            "device_id": device_id,
+            "device_id": device.device_id,
             "action": action,
             "payload_sent": payload_sent,
             "status": status,

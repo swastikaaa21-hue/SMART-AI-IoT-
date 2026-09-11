@@ -37,6 +37,8 @@ class RoomResponse(BaseModel):
     owner_id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    total_devices_count: int = 0
+    active_devices_count: int = 0
 
     class Config:
         from_attributes = True

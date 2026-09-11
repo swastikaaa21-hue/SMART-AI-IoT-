@@ -129,7 +129,7 @@ class TestSystemEndpoints:
         assert rooms_res.status_code == 200
         assert rooms_res.json()["total"] >= 4
 
-        # Test command sending to dev-km-1
+        # Test command sending to dev-km-1 via exact ID
         cmd_res = await client.post(
             "/api/v1/commands/dev-km-1",
             headers=headers,
@@ -137,6 +137,15 @@ class TestSystemEndpoints:
         )
         assert cmd_res.status_code == 200
         assert cmd_res.json()["status"] in ["sent", "failed"]
+
+        # Test command sending via fuzzy alias (light_bedroom)
+        fuzzy_cmd = await client.post(
+            "/api/v1/commands/light_bedroom",
+            headers=headers,
+            json={"action": "turn_on"},
+        )
+        assert fuzzy_cmd.status_code == 200
+        assert fuzzy_cmd.json()["status"] in ["sent", "failed"]
 
         # Test set_value command
         val_res = await client.post(

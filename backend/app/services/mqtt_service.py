@@ -10,6 +10,8 @@ from __future__ import annotations
 import asyncio
 import json
 import ssl
+import sys
+import threading
 import time
 from typing import Any, Callable, Coroutine
 
@@ -28,6 +30,11 @@ logger = get_logger("mqtt_service")
 # Type alias for message handler callbacks
 MessageHandler = Callable[[str, dict[str, Any]], Coroutine[Any, Any, None]]
 
+# On Windows, aiomqtt (paho-mqtt) requires SelectorEventLoop because it uses
+# add_reader()/add_writer() which ProactorEventLoop does not support.
+# We run the MQTT client in a dedicated thread with its own SelectorEventLoop.
+_IS_WINDOWS = sys.platform == "win32"
+
 
 class MQTTService:
     """
@@ -37,6 +44,9 @@ class MQTTService:
     1. ``connect()`` establishes TLS connection and spawns listener task.
     2. ``publish_command()`` sends JSON payloads to device command topics.
     3. ``disconnect()`` gracefully tears down the connection.
+
+    On Windows, the MQTT loop runs in a dedicated thread with a
+    SelectorEventLoop to avoid ProactorEventLoop compatibility issues.
     """
 
     def __init__(self) -> None:
@@ -47,6 +57,11 @@ class MQTTService:
         self._telemetry_handlers: list[MessageHandler] = []
         self._reconnect_interval: int = 5
         self._max_reconnect_interval: int = 60
+        # Windows threading support
+        self._mqtt_loop: asyncio.AbstractEventLoop | None = None
+        self._mqtt_thread: threading.Thread | None = None
+        # Reference to the main event loop (for scheduling handler callbacks)
+        self._main_loop: asyncio.AbstractEventLoop | None = None
 
     @property
     def is_connected(self) -> bool:
@@ -80,7 +95,24 @@ class MQTTService:
             client_id=settings.MQTT_CLIENT_ID,
         )
 
-        self._listener_task = asyncio.create_task(self._connection_loop())
+        self._main_loop = asyncio.get_running_loop()
+
+        if _IS_WINDOWS:
+            # Run MQTT in a dedicated thread with SelectorEventLoop
+            self._mqtt_loop = asyncio.SelectorEventLoop()
+            self._mqtt_thread = threading.Thread(
+                target=self._run_mqtt_thread,
+                name="mqtt-selector-loop",
+                daemon=True,
+            )
+            self._mqtt_thread.start()
+        else:
+            self._listener_task = asyncio.create_task(self._connection_loop())
+
+    def _run_mqtt_thread(self) -> None:
+        """Entry point for the dedicated MQTT thread (Windows only)."""
+        asyncio.set_event_loop(self._mqtt_loop)
+        self._mqtt_loop.run_until_complete(self._connection_loop())
 
     async def _connection_loop(self) -> None:
         """Persistent connection loop with automatic reconnection."""

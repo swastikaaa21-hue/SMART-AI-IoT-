@@ -15,12 +15,6 @@ from __future__ import annotations
 import sys
 import asyncio
 
-if sys.platform == "win32":
-    try:
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    except Exception:
-        pass
-
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
@@ -146,18 +140,26 @@ def create_app() -> FastAPI:
     # --- Routes ---
     application.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
-    # Path to frontend UI UX
+    # Path to frontend UI
     frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
-    ui_html_path = frontend_dir / "UI UX.html"
+    ui_html_path = frontend_dir / "index.html"
 
     # --- UI and Health Endpoints ---
     @application.get("/ui", tags=["UI"])
     @application.get("/app", tags=["UI"])
     async def serve_ui():
-        """Serve the Smart Home UI/UX Dashboard."""
+        """Serve the Smart Home Backend API info page or UI Dashboard if available."""
         if ui_html_path.is_file():
             return FileResponse(str(ui_html_path), media_type="text/html")
-        return HTMLResponse("<h1>UI file not found</h1>", status_code=404)
+        return HTMLResponse(
+            "<!DOCTYPE html><html><head><title>SMART AI IoT Backend</title></head>"
+            "<body style='font-family:sans-serif;padding:2rem;background:#111;color:#eee;'>"
+            "<h1>🤖 SMART AI IoT Backend API</h1>"
+            "<p>Backend service running smoothly. (Backend Only Mode)</p>"
+            "<p>Interactive API Docs: <a style='color:#38bdf8;' href='/docs'>/docs</a> | Health Check: <a style='color:#38bdf8;' href='/health'>/health</a></p>"
+            "</body></html>",
+            status_code=200,
+        )
 
     # --- Health Check (outside versioned prefix) ---
     @application.get("/health", response_model=HealthResponse, tags=["Health"])

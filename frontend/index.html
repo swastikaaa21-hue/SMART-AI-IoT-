@@ -1,0 +1,1651 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart House - IoT Dashboard</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            blue: '#2563EB', // Blue 600
+                            dark: '#0F172A', // Slate 900
+                            light: '#F8FAFC',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Smooth transition for page changes */
+        .page-transition {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Custom Toggle Switch styling - CSS Only Interactive */
+        .toggle-checkbox {
+            right: 1.5rem;
+            border-color: #d1d5db;
+        }
+
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #2563EB;
+        }
+
+        .toggle-label {
+            background-color: #d1d5db;
+        }
+
+        .toggle-checkbox:checked+.toggle-label {
+            background-color: #2563EB;
+        }
+
+        @keyframes scan {
+            0% {
+                top: 0;
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            90% {
+                opacity: 1;
+            }
+
+            100% {
+                top: 100%;
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body
+    class="bg-gray-50 text-gray-800 font-sans h-screen w-full overflow-hidden flex flex-col md:flex-row transition-colors duration-300">
+
+    <!-- Navigation: Bottom on Mobile, Sidebar on Desktop -->
+    <nav id="main-nav"
+        class="hidden md:w-64 md:flex-col bg-white border-r border-gray-200 fixed bottom-0 w-full md:relative z-50 transition-colors duration-300">
+        <!-- Desktop Logo -->
+        <div class="hidden md:flex items-center justify-center h-24 border-b border-gray-200">
+            <div class="w-14 h-10 mr-1 flex-shrink-0">
+                <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+                    <!-- Chimney -->
+                    <rect x="65" y="20" width="10" height="25" fill="currentColor" class="text-brand-dark" />
+                    <!-- Roof -->
+                    <path d="M 45 65 L 100 20 L 160 70 L 145 70 L 100 32 L 60 65 Z" fill="currentColor"
+                        class="text-brand-dark" />
+                    <!-- Window (4 squares) -->
+                    <rect x="91" y="42" width="7" height="7" fill="#2563EB" />
+                    <rect x="100" y="42" width="7" height="7" fill="#2563EB" />
+                    <rect x="91" y="51" width="7" height="7" fill="#2563EB" />
+                    <rect x="100" y="51" width="7" height="7" fill="#2563EB" />
+                    <!-- Blue Swoosh -->
+                    <path d="M 25 80 C 15 45, 60 30, 150 60 C 110 40, 50 45, 35 80 Z" fill="#2563EB" />
+                </svg>
+            </div>
+            <div class="relative flex flex-col mt-1">
+                <span class="font-extrabold text-3xl text-brand-dark leading-none">Smart</span>
+                <span
+                    class="text-[0.65rem] tracking-[0.3em] text-brand-blue uppercase font-light absolute -bottom-3 right-0">HOUSE</span>
+            </div>
+        </div>
+
+        <!-- Nav Links -->
+        <div class="flex flex-row md:flex-col justify-around md:justify-start flex-1 p-2 md:p-4 gap-2">
+            <button onclick="navigate('home')" id="nav-home"
+                class="nav-btn flex flex-col md:flex-row items-center p-3 rounded-xl text-brand-blue bg-blue-50 transition-all">
+                <i class="fas fa-home text-xl md:w-8"></i>
+                <span class="text-xs md:text-base font-medium mt-1 md:mt-0">Home</span>
+            </button>
+            <button onclick="navigate('schedule')" id="nav-schedule"
+                class="nav-btn flex flex-col md:flex-row items-center p-3 rounded-xl text-gray-500 hover:text-brand-blue transition-all">
+                <i class="fas fa-clock text-xl md:w-8"></i>
+                <span class="text-xs md:text-base font-medium mt-1 md:mt-0">Schedule</span>
+            </button>
+            <button onclick="navigate('settings')" id="nav-settings"
+                class="nav-btn flex flex-col md:flex-row items-center p-3 rounded-xl text-gray-500 hover:text-brand-blue transition-all">
+                <i class="fas fa-cog text-xl md:w-8"></i>
+                <span class="text-xs md:text-base font-medium mt-1 md:mt-0">Settings</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 h-full overflow-y-auto no-scrollbar relative">
+
+        <!-- ================= PAGE: SPLASH ================= -->
+        <div id="page-splash" class="page flex flex-col items-center justify-center h-full p-6 text-center bg-white">
+            <div class="mb-12 flex flex-col items-center">
+                <!-- SVG Logo based on Design -->
+                <div class="w-64 h-32 mb-2 relative">
+                    <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+                        <!-- Chimney -->
+                        <rect x="65" y="20" width="10" height="25" fill="currentColor" class="text-brand-dark" />
+                        <!-- Roof -->
+                        <path d="M 45 65 L 100 20 L 160 70 L 145 70 L 100 32 L 60 65 Z" fill="currentColor"
+                            class="text-brand-dark" />
+                        <!-- Window (4 squares) -->
+                        <rect x="91" y="42" width="7" height="7" fill="#2563EB" />
+                        <rect x="100" y="42" width="7" height="7" fill="#2563EB" />
+                        <rect x="91" y="51" width="7" height="7" fill="#2563EB" />
+                        <rect x="100" y="51" width="7" height="7" fill="#2563EB" />
+                        <!-- Blue Swoosh -->
+                        <path d="M 25 80 C 15 45, 60 30, 150 60 C 110 40, 50 45, 35 80 Z" fill="#2563EB" />
+                    </svg>
+                </div>
+                <div class="relative inline-block mt-0">
+                    <h1 class="text-7xl font-extrabold text-brand-dark tracking-tight leading-none">Smart</h1>
+                    <p class="text-xl tracking-[0.4em] text-brand-blue uppercase font-light absolute -bottom-6 right-0">
+                        HOUSE</p>
+                </div>
+            </div>
+            <p class="text-gray-500 mb-12 font-medium">Your Home. Smarter. Safer.</p>
+            <button onclick="navigate('login')"
+                class="bg-brand-blue text-white w-full max-w-sm py-4 rounded-2xl font-semibold text-lg shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-all transform hover:scale-105 active:scale-95">
+                GET STARTED
+            </button>
+        </div>
+
+        <!-- ================= PAGE: LOGIN ================= -->
+        <div id="page-login" class="page hidden flex flex-col h-full p-6 bg-white justify-center items-center">
+            <div class="w-full max-w-md">
+                <!-- Small Logo -->
+                <div class="flex justify-center mb-12 mt-4">
+                    <div class="text-center flex flex-col items-center">
+                        <div class="w-48 h-24 mb-0">
+                            <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+                                <!-- Chimney -->
+                                <rect x="65" y="20" width="10" height="25" fill="currentColor"
+                                    class="text-brand-dark" />
+                                <!-- Roof -->
+                                <path d="M 45 65 L 100 20 L 160 70 L 145 70 L 100 32 L 60 65 Z" fill="currentColor"
+                                    class="text-brand-dark" />
+                                <!-- Window (4 squares) -->
+                                <rect x="91" y="42" width="7" height="7" fill="#2563EB" />
+                                <rect x="100" y="42" width="7" height="7" fill="#2563EB" />
+                                <rect x="91" y="51" width="7" height="7" fill="#2563EB" />
+                                <rect x="100" y="51" width="7" height="7" fill="#2563EB" />
+                                <!-- Blue Swoosh -->
+                                <path d="M 25 80 C 15 45, 60 30, 150 60 C 110 40, 50 45, 35 80 Z" fill="#2563EB" />
+                            </svg>
+                        </div>
+                        <div class="relative inline-block mt-0">
+                            <h2 class="text-6xl font-extrabold text-brand-dark tracking-tight leading-none">Smart</h2>
+                            <span
+                                class="text-lg tracking-[0.4em] text-brand-blue uppercase font-light absolute -bottom-5 right-0">HOUSE</span>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="text-center text-gray-500 mb-6">Select the home you want to control.</p>
+
+                <!-- Tabs -->
+                <div class="flex bg-gray-100 p-1 rounded-xl mb-6">
+                    <button id="tab-house" onclick="switchLoginTab('house')"
+                        class="flex-1 py-2 text-sm font-semibold rounded-lg bg-white shadow-sm text-brand-blue transition-all">House
+                        Number</button>
+                    <button id="tab-qr" onclick="switchLoginTab('qr')"
+                        class="flex-1 py-2 text-sm font-semibold rounded-lg text-gray-500 hover:text-gray-800 transition-all">Scan
+                        QR</button>
+                </div>
+
+                <!-- Form House Number -->
+                <div id="form-house">
+                    <div class="space-y-4">
+                        <div>
+                            <input type="email" id="login-house-id" placeholder="Email Address"
+                                class="w-full px-4 py-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 placeholder-gray-400 transition-all">
+                        </div>
+                        <div>
+                            <input type="password" placeholder="Password"
+                                class="w-full px-4 py-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 placeholder-gray-400 transition-all">
+                        </div>
+                    </div>
+                    <button onclick="login()"
+                        class="mt-8 bg-brand-dark text-white w-full py-4 rounded-2xl font-semibold shadow-lg hover:bg-gray-800 transition-all">
+                        Log in to your account
+                    </button>
+
+                    <div class="mt-6 text-center">
+                        <p class="text-sm text-gray-500">Don't have a Smart Home Server?</p>
+                        <button onclick="navigate('register')"
+                            class="mt-2 text-brand-blue font-semibold hover:underline transition-all">
+                            Setup & Create New Account
+                        </button>
+                    </div>
+                </div>
+
+                <!-- QR Scanner Mockup -->
+                <div id="form-qr" class="hidden">
+                    <div
+                        class="bg-gray-900 rounded-3xl aspect-square flex flex-col items-center justify-center border-4 border-brand-blue relative overflow-hidden shadow-2xl shadow-blue-500/20">
+                        <div
+                            class="absolute top-0 left-0 w-full h-1 bg-brand-blue shadow-[0_0_15px_#2563EB] animate-[scan_2s_ease-in-out_infinite]">
+                        </div>
+                        <i class="fas fa-camera text-4xl text-gray-500 mb-2"></i>
+                        <p class="text-white font-medium">Kamera On...</p>
+                    </div>
+                    <p class="text-center mt-4 text-sm text-gray-500">Point the camera at the QR code</p>
+                    <button onclick="login()"
+                        class="mt-4 bg-gray-200 text-gray-800 w-full py-3 rounded-xl font-medium hover:bg-gray-300 transition-all">
+                        Simulate Scan
+                    </button>
+
+                    <div class="mt-6 text-center">
+                        <p class="text-sm text-gray-500">Don't have a Smart Home QR?</p>
+                        <button onclick="navigate('register')"
+                            class="mt-2 text-brand-blue font-semibold hover:underline transition-all">
+                            Setup & Create New Account
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= PAGE: REGISTER ================= -->
+        <div id="page-register"
+            class="page hidden flex flex-col h-full p-6 bg-white justify-center items-center overflow-y-auto">
+            <div class="w-full max-w-md my-auto">
+                <button onclick="navigate('login')"
+                    class="text-gray-500 hover:text-brand-blue transition-colors mb-8 flex items-center gap-2 font-medium">
+                    <i class="fas fa-arrow-left"></i> Back to Login
+                </button>
+
+                <h2 class="text-3xl font-extrabold text-brand-dark mb-2">Server Setup</h2>
+                <p class="text-gray-500 mb-8">Register and configure your smart home into the system.</p>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Home Name</label>
+                        <input type="text" id="reg-home-name" placeholder="e.g., The Smiths Family"
+                            class="w-full px-4 py-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 placeholder-gray-400 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
+                        <input type="email" id="reg-house-id" placeholder="e.g., you@example.com"
+                            class="w-full px-4 py-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 placeholder-gray-400 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Location / City</label>
+                        <input type="text" id="reg-location" placeholder="e.g., South Jakarta"
+                            class="w-full px-4 py-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 placeholder-gray-400 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Admin Password</label>
+                        <input type="password" id="reg-password" placeholder="Min. 8 characters"
+                            class="w-full px-4 py-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 placeholder-gray-400 transition-all">
+                    </div>
+                </div>
+
+                <button onclick="registerNewHome()"
+                    class="mt-8 bg-brand-blue text-white w-full py-4 rounded-2xl font-semibold shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition-all">
+                    Save & Create Server
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= PAGE: HOME (DASHBOARD) ================= -->
+        <div id="page-home" class="page hidden p-6 pb-24 md:pb-6 max-w-7xl mx-auto">
+            <!-- Header: Profile (Left) | Smart House + Date (Center) | Notification (Right) -->
+            <header class="flex justify-between items-center mb-6 pt-4">
+                <div class="w-12 h-12 rounded-full overflow-hidden shadow-sm border-2 border-gray-100 flex-shrink-0 cursor-pointer hover:border-brand-blue transition-colors"
+                    onclick="navigate('settings')">
+                    <img src="https://ui-avatars.com/api/?name=Miko&background=fff&color=2563EB" alt="Profile"
+                        class="w-full h-full object-cover">
+                </div>
+
+                <div class="flex flex-col items-center justify-center flex-1 px-2 text-center">
+                    <h2 class="text-brand-blue font-bold text-xl tracking-wide uppercase mb-0">HOME</h2>
+                </div>
+
+                <button
+                    class="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:text-brand-blue shadow-sm transition-colors relative flex-shrink-0">
+                    <i class="far fa-bell text-xl"></i>
+                    <span
+                        class="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
+                </button>
+            </header>
+
+            <!-- Search Bar -->
+            <div class="relative w-full mb-6">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                    <i class="fas fa-search text-gray-400"></i>
+                </div>
+                <input type="text" id="dashboard-search" oninput="handleSearch()"
+                    placeholder="Search rooms or devices..."
+                    class="w-full pl-11 pr-4 py-4 rounded-3xl bg-white border border-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 placeholder-gray-400 transition-all shadow-sm">
+            </div>
+
+            <!-- Smart Home Illustration Banner -->
+            <div
+                class="w-full mb-8 rounded-3xl overflow-hidden shadow-sm border border-gray-100 bg-white flex items-center justify-center p-3 sm:p-5">
+                <img src="https://i.pinimg.com/1200x/c4/e7/a3/c4e7a3aa6e61b9059f682e392a8e84d1.jpg"
+                    onerror="this.src='https://placehold.co/900x450/eff6ff/2563EB?text=Smart+Home'"
+                    alt="Smart Home Illustration" class="w-full h-auto object-contain block">
+            </div>
+
+            <!-- Location & Temperature Widgets -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                <div
+                    class="bg-gradient-to-br from-brand-blue to-blue-500 rounded-3xl p-5 flex items-center justify-between shadow-lg shadow-blue-500/30 text-white">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-12 h-12 bg-white/20 text-white rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                            <i class="fas fa-map-marker-alt text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-blue-100 text-xs font-medium uppercase tracking-wider">Location</p>
+                            <p class="font-semibold text-lg" id="dashboard-location">Tembalang, Semarang</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="bg-gradient-to-br from-orange-400 to-amber-500 rounded-3xl p-5 flex items-center justify-between shadow-lg shadow-orange-500/30 text-white">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-12 h-12 bg-white/20 text-white rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                            <i class="fas fa-sun text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-orange-100 text-xs font-medium uppercase tracking-wider">Weather</p>
+                            <p class="font-semibold text-lg">Sunny</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-3xl font-bold">28°</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rooms Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6" id="rooms-grid"></div>
+        </div>
+
+        <!-- ================= PAGE: SCHEDULE ================= -->
+        <div id="page-schedule" class="page hidden p-6 pb-24 md:pb-6 max-w-7xl mx-auto">
+            <!-- Header: Back Button (Left) | Schedule + Date (Center) | Notification (Right) -->
+            <header class="flex justify-between items-center mb-8 pt-4">
+                <button onclick="navigate('home')"
+                    class="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:text-brand-blue shadow-sm transition-colors flex-shrink-0">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </button>
+
+                <div class="flex flex-col items-center justify-center flex-1 px-2 text-center">
+                    <h2 class="text-brand-blue font-bold text-xl tracking-wide uppercase mb-0.5">SCHEDULE</h2>
+                    <p class="text-gray-400 font-medium text-xs current-date-display"></p>
+                </div>
+
+                <button
+                    class="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:text-brand-blue shadow-sm transition-colors relative flex-shrink-0">
+                    <i class="far fa-bell text-xl"></i>
+                    <span
+                        class="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
+                </button>
+            </header>
+
+            <!-- Calendar & Routine Split Section -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-stretch mb-6">
+                <!-- Calendar Widget -->
+                <div
+                    class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-gray-100 flex flex-col justify-between h-full min-h-[160px] w-full">
+                    <!-- Month/Year Selector -->
+                    <div class="flex items-center justify-between mb-2">
+                        <button
+                            class="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center text-gray-600 hover:text-brand-blue shadow-sm border border-gray-100 transition-colors">
+                            <i class="fas fa-chevron-left text-[10px]"></i>
+                        </button>
+                        <span class="font-bold text-gray-800 text-sm">Sep, 2026</span>
+                        <button
+                            class="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center text-gray-600 hover:text-brand-blue shadow-sm border border-gray-100 transition-colors">
+                            <i class="fas fa-chevron-right text-[10px]"></i>
+                        </button>
+                    </div>
+
+                    <!-- Days Selector -->
+                    <div class="flex justify-between items-end w-full px-1">
+                        <!-- Unselected Day -->
+                        <div class="flex flex-col items-center justify-center cursor-pointer group py-1 px-1 sm:px-2">
+                            <span
+                                class="text-[10px] sm:text-xs text-gray-500 font-medium mb-1 group-hover:text-brand-blue transition-colors">Wed</span>
+                            <span
+                                class="text-base sm:text-lg font-bold text-gray-800 group-hover:text-brand-blue transition-colors">09</span>
+                        </div>
+                        <!-- Unselected Day -->
+                        <div class="flex flex-col items-center justify-center cursor-pointer group py-1 px-1 sm:px-2">
+                            <span
+                                class="text-[10px] sm:text-xs text-gray-500 font-medium mb-1 group-hover:text-brand-blue transition-colors">Thu</span>
+                            <span
+                                class="text-base sm:text-lg font-bold text-gray-800 group-hover:text-brand-blue transition-colors">10</span>
+                        </div>
+                        <!-- Selected Day (Blue Text Only) -->
+                        <div class="flex flex-col items-center justify-center cursor-pointer group py-1 px-1 sm:px-2">
+                            <span
+                                class="text-[10px] sm:text-xs font-bold mb-1 text-brand-blue transition-colors">Fri</span>
+                            <span
+                                class="text-base sm:text-lg font-extrabold text-brand-blue transition-colors scale-110">11</span>
+                        </div>
+                        <!-- Unselected Day -->
+                        <div class="flex flex-col items-center justify-center cursor-pointer group py-1 px-1 sm:px-2">
+                            <span
+                                class="text-[10px] sm:text-xs text-gray-500 font-medium mb-1 group-hover:text-brand-blue transition-colors">Sat</span>
+                            <span
+                                class="text-base sm:text-lg font-bold text-gray-800 group-hover:text-brand-blue transition-colors">12</span>
+                        </div>
+                        <!-- Unselected Day -->
+                        <div
+                            class="flex flex-col items-center justify-center cursor-pointer group py-1 px-1 sm:px-2 hidden sm:flex">
+                            <span
+                                class="text-[10px] sm:text-xs text-gray-500 font-medium mb-1 group-hover:text-brand-blue transition-colors">Sun</span>
+                            <span
+                                class="text-base sm:text-lg font-bold text-gray-800 group-hover:text-brand-blue transition-colors">13</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Routine Card -->
+                <div
+                    class="bg-[#dcd8cc] rounded-3xl p-5 sm:p-6 shadow-sm flex items-center justify-between relative overflow-hidden text-gray-800 transition-all h-full min-h-[160px] w-full">
+                    <div class="max-w-[70%] z-10 flex flex-col justify-center h-full">
+                        <h3 class="font-bold text-lg sm:text-xl text-gray-900 mb-1">Create a Smart Routine</h3>
+                        <p class="text-xs sm:text-sm font-semibold text-gray-700 mb-0.5">Automate your home with ease.
+                        </p>
+                        <p class="text-[10px] sm:text-xs text-gray-600 mb-4">Set a schedule for your smart devices.</p>
+                        <button onclick="openModal('modal-add-room')"
+                            class="bg-[#4a463c] text-white font-medium px-5 py-2.5 rounded-full text-xs sm:text-sm shadow-md hover:opacity-90 transition-all w-fit mt-auto">
+                            Create Now
+                        </button>
+                    </div>
+                    <!-- Bell Illustration -->
+                    <div class="absolute -right-2 bottom-0 text-[#988c78] opacity-90 pointer-events-none">
+                        <i class="fas fa-bell text-7xl sm:text-8xl transform rotate-12 translate-y-2"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex justify-between items-center hover:shadow-md transition-shadow cursor-pointer"
+                    onclick="this.querySelector('.toggle-checkbox').click()">
+                    <div class="flex items-start gap-4">
+                        <div class="mt-1 font-bold text-xl text-gray-800">22:00</div>
+                        <div>
+                            <h3 class="font-bold text-lg text-gray-800">Night Sleep Mode</h3>
+                            <p class="text-sm text-gray-500 line-clamp-1">Your Home. Smarter. Safer.</p>
+                        </div>
+                    </div>
+                    <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in"
+                        onclick="event.stopPropagation()">
+                        <input type="checkbox" checked
+                            class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0" />
+                        <label
+                            class="toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300"></label>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex justify-between items-center hover:shadow-md transition-shadow cursor-pointer"
+                    onclick="this.querySelector('.toggle-checkbox').click()">
+                    <div class="flex items-start gap-4">
+                        <div class="mt-1 font-bold text-xl text-gray-800">13:00</div>
+                        <div>
+                            <h3 class="font-bold text-lg text-gray-800">Cool Down Studio</h3>
+                            <p class="text-sm text-gray-500 line-clamp-1">Set Sharp AC to 24°C Cool Mode</p>
+                        </div>
+                    </div>
+                    <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in"
+                        onclick="event.stopPropagation()">
+                        <input type="checkbox" checked
+                            class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0" />
+                        <label
+                            class="toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300"></label>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex justify-between items-center hover:shadow-md transition-shadow cursor-pointer"
+                    onclick="this.querySelector('.toggle-checkbox').click()">
+                    <div class="flex items-start gap-4">
+                        <div class="mt-1 font-bold text-xl text-gray-800">07:00</div>
+                        <div>
+                            <h3 class="font-bold text-lg text-gray-800">Morning Routine</h3>
+                            <p class="text-sm text-gray-500 line-clamp-2">Turn on living room lights & set AC to 24°C
+                            </p>
+                        </div>
+                    </div>
+                    <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in"
+                        onclick="event.stopPropagation()">
+                        <input type="checkbox"
+                            class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0" />
+                        <label
+                            class="toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300"></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= PAGE: SETTINGS ================= -->
+        <div id="page-settings" class="page hidden p-6 pb-24 md:pb-6 max-w-7xl mx-auto">
+            <header class="flex justify-between items-center mb-8 pt-4">
+                <button onclick="navigate('home')"
+                    class="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:text-brand-blue shadow-sm transition-colors flex-shrink-0">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </button>
+
+                <div class="flex flex-col items-center justify-center flex-1 px-2 text-center">
+                    <h2 class="text-brand-blue font-bold text-xl tracking-wide uppercase mb-0">SETTINGS</h2>
+                </div>
+
+                <button
+                    class="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:text-brand-blue shadow-sm transition-colors relative flex-shrink-0">
+                    <i class="far fa-bell text-xl"></i>
+                    <span
+                        class="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
+                </button>
+            </header>
+
+            <!-- Profile Overview Card -->
+            <div
+                class="bg-gradient-to-br from-brand-blue to-blue-500 rounded-3xl p-6 text-white mb-8 shadow-lg shadow-blue-500/30 flex items-center gap-4">
+                <div class="w-16 h-16 rounded-full bg-white/20 border-2 border-white/50 overflow-hidden flex-shrink-0">
+                    <img src="https://ui-avatars.com/api/?name=Miko&background=fff&color=2563EB" alt="Profile"
+                        class="w-full h-full object-cover">
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold" id="settings-home-name">MikoHome</h3>
+                    <p class="text-blue-100 text-sm flex items-center gap-1 mt-1">
+                        <i class="fas fa-map-marker-alt"></i> <span id="settings-location">Tembalang, Semarang</span>
+                    </p>
+                </div>
+            </div>
+
+            <h3 class="font-bold text-gray-500 uppercase tracking-wider text-sm mb-4 ml-2">Other Settings</h3>
+
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-100">
+                <div class="p-5 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors"
+                    onclick="toggleProfileDetails()">
+                    <div class="flex items-center gap-4 text-gray-800 font-medium text-lg">
+                        <i class="far fa-user w-6 text-center text-xl text-gray-400"></i>
+                        Profile details
+                    </div>
+                    <i id="profile-chevron"
+                        class="fas fa-chevron-right text-gray-400 transition-transform duration-300"></i>
+                </div>
+                <div id="profile-details-menu" class="hidden bg-gray-50 p-5 border-t border-gray-100">
+                    <p class="text-sm text-gray-500 mb-4">Manage your account sessions and smart home connection.</p>
+                    <button onclick="logout()"
+                        class="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 py-3 rounded-xl font-bold hover:bg-red-100 transition-colors border border-red-100">
+                        <i class="fas fa-sign-out-alt"></i> Log Out
+                    </button>
+                    <button onclick="resetData()"
+                        class="mt-3 w-full flex items-center justify-center gap-2 bg-gray-200 text-gray-600 py-3 rounded-xl font-bold hover:bg-gray-300 transition-colors">
+                        <i class="fas fa-trash-alt"></i> Reset All Data
+                    </button>
+                </div>
+                <div class="p-5 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors">
+                    <div class="flex items-center gap-4 text-gray-800 font-medium text-lg">
+                        <i class="fas fa-key w-6 text-center text-xl text-gray-400"></i>
+                        Password
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-400"></i>
+                </div>
+                <div class="p-5 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors"
+                    onclick="this.querySelector('.toggle-checkbox').click()">
+                    <div class="flex items-center gap-4 text-gray-800 font-medium text-lg">
+                        <i class="far fa-bell w-6 text-center text-xl text-gray-400"></i>
+                        Notifications
+                    </div>
+                    <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in"
+                        onclick="event.stopPropagation()">
+                        <input type="checkbox" checked
+                            class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0" />
+                        <label
+                            class="toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300"></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= PAGE: ROOM DETAIL ================= -->
+        <div id="page-room" class="page hidden p-6 pb-24 md:pb-6 max-w-7xl mx-auto h-full flex flex-col">
+            <header class="flex items-center justify-between mb-6 pt-4">
+                <button onclick="navigate('home')"
+                    class="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:text-brand-blue shadow-sm transition-colors flex-shrink-0">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </button>
+                <div class="flex flex-col items-center justify-center flex-1 px-2 text-center">
+                    <h2 class="text-brand-blue font-bold text-xl tracking-wide uppercase mb-0" id="room-title">Living
+                        Room</h2>
+                </div>
+                <button
+                    class="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:text-brand-blue shadow-sm transition-colors relative flex-shrink-0">
+                    <i class="far fa-bell text-xl"></i>
+                    <span
+                        class="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
+                </button>
+            </header>
+
+            <div class="flex justify-between items-end mb-4">
+                <p class="text-gray-500 font-medium" id="room-stats">0/3 Active • 3 connected devices</p>
+            </div>
+
+            <!-- Scene Card -->
+            <div id="room-scene-card"
+                class="bg-brand-blue rounded-3xl p-6 text-white mb-8 shadow-lg shadow-blue-500/30 relative overflow-hidden">
+                <div class="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl">
+                </div>
+
+                <div class="flex items-center gap-4 relative z-10">
+                    <div
+                        class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/40 shadow-inner">
+                        <i id="scene-icon" class="fas fa-film text-2xl text-white"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold mb-1" id="scene-title">Movie Time</h2>
+                        <p class="text-blue-50 text-sm font-medium" id="scene-desc">Ambient lights ON, TV & Speaker
+                            active</p>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="font-bold text-gray-800 text-lg mb-4">Room Device Control</h3>
+
+            <!-- Devices Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 content-start" id="devices-list"></div>
+        </div>
+
+    </main>
+
+    <!-- ================= MODALS ================= -->
+    <!-- Modal Add Room -->
+    <div id="modal-add-room"
+        class="fixed inset-0 z-[100] hidden items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 transition-opacity">
+        <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-800">Add New Room</h3>
+                <button onclick="closeModal('modal-add-room')"
+                    class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form onsubmit="submitAddRoom(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Room Name</label>
+                    <input type="text" id="new-room-name" required placeholder="e.g., Backyard"
+                        class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Room Type / Icon</label>
+                    <select id="new-room-type"
+                        class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 transition-all appearance-none cursor-pointer">
+                        <option value="living">Living Room</option>
+                        <option value="bed">Bedroom</option>
+                        <option value="kitchen">Kitchen</option>
+                        <option value="bath">Bathroom</option>
+                        <option value="garage">Garage / Outdoor</option>
+                    </select>
+                </div>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeModal('modal-add-room')"
+                        class="flex-1 py-3 rounded-xl font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all">Cancel</button>
+                    <button type="submit"
+                        class="flex-1 py-3 rounded-xl font-semibold bg-brand-blue text-white shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition-all">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Add Device -->
+    <div id="modal-add-device"
+        class="fixed inset-0 z-[100] hidden items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 transition-opacity">
+        <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-800">Add Device</h3>
+                <button onclick="closeModal('modal-add-device')"
+                    class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form onsubmit="submitAddDevice(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Device Name</label>
+                    <input type="text" id="new-device-name" required placeholder="e.g., Wall Fan"
+                        class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Device Type</label>
+                    <select id="new-device-type"
+                        class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 transition-all appearance-none cursor-pointer">
+                        <option value="LIGHT">Smart Light (LIGHT)</option>
+                        <option value="AC">Air Conditioner (AC)</option>
+                        <option value="TV">Television (TV)</option>
+                        <option value="FAN">Fan (FAN)</option>
+                        <option value="PLUG">Smart Plug (PLUG)</option>
+                        <option value="CAMERA">Security Camera (CAMERA)</option>
+                        <option value="COOKER">Rice Cooker (COOKER)</option>
+                        <option value="DOOR">Smart Door (DOOR)</option>
+                    </select>
+                </div>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeModal('modal-add-device')"
+                        class="flex-1 py-3 rounded-xl font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all">Cancel</button>
+                    <button type="submit"
+                        class="flex-1 py-3 rounded-xl font-semibold bg-brand-blue text-white shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition-all">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= SMART ASSISTANT ================= -->
+    <button id="assistant-fab" onclick="toggleAssistant()"
+        class="fixed hidden bottom-24 md:bottom-8 right-4 md:right-8 w-14 h-14 bg-white rounded-full flex items-center justify-center text-brand-dark shadow-lg shadow-blue-500/30 border-2 border-brand-blue hover:scale-110 active:scale-95 transition-all z-40">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="w-8 h-8">
+            <rect x="47" y="15" width="6" height="15" fill="#2563EB" />
+            <circle cx="50" cy="12" r="6" fill="#2563EB" />
+            <rect x="15" y="45" width="8" height="20" rx="4" fill="#2563EB" />
+            <rect x="77" y="45" width="8" height="20" rx="4" fill="#2563EB" />
+            <rect x="20" y="30" width="60" height="45" rx="22" fill="#F8FAFC" stroke="#2563EB" stroke-width="2" />
+            <rect x="27" y="38" width="46" height="30" rx="15" fill="#0F172A" />
+            <path d="M 35 55 Q 40 48 45 55" fill="none" stroke="#4ADE80" stroke-width="4" stroke-linecap="round" />
+            <path d="M 55 55 Q 60 48 65 55" fill="none" stroke="#4ADE80" stroke-width="4" stroke-linecap="round" />
+            <rect x="40" y="75" width="20" height="8" rx="3" fill="#2563EB" />
+        </svg>
+    </button>
+
+    <div id="assistant-panel"
+        class="fixed inset-y-0 right-0 w-full sm:w-96 bg-white shadow-2xl z-[60] transform translate-x-full transition-transform duration-300 flex flex-col md:rounded-l-3xl border-l border-gray-200">
+        <div
+            class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-tl-none md:rounded-tl-3xl">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-gray-200 shadow-sm">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6">
+                        <rect x="47" y="15" width="6" height="15" fill="#2563EB" />
+                        <circle cx="50" cy="12" r="6" fill="#2563EB" />
+                        <rect x="15" y="45" width="8" height="20" rx="4" fill="#2563EB" />
+                        <rect x="77" y="45" width="8" height="20" rx="4" fill="#2563EB" />
+                        <rect x="20" y="30" width="60" height="45" rx="22" fill="#F8FAFC" stroke="#2563EB"
+                            stroke-width="2" />
+                        <rect x="27" y="38" width="46" height="30" rx="15" fill="#0F172A" />
+                        <path d="M 35 55 Q 40 48 45 55" fill="none" stroke="#4ADE80" stroke-width="4"
+                            stroke-linecap="round" />
+                        <path d="M 55 55 Q 60 48 65 55" fill="none" stroke="#4ADE80" stroke-width="4"
+                            stroke-linecap="round" />
+                        <rect x="40" y="75" width="20" height="8" rx="3" fill="#2563EB" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-800 leading-tight">Smart Assistant</h3>
+                    <p class="text-xs text-green-500 font-medium">Online</p>
+                </div>
+            </div>
+            <button onclick="toggleAssistant()"
+                class="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-200 transition-colors">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+
+        <div id="chat-body" class="flex-1 p-5 overflow-y-auto flex flex-col gap-4 no-scrollbar">
+            <div class="flex items-start gap-3 w-5/6">
+                <div
+                    class="w-8 h-8 rounded-full bg-white flex-shrink-0 flex items-center justify-center mt-1 border border-gray-200">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5">
+                        <rect x="47" y="15" width="6" height="15" fill="#2563EB" />
+                        <circle cx="50" cy="12" r="6" fill="#2563EB" />
+                        <rect x="15" y="45" width="8" height="20" rx="4" fill="#2563EB" />
+                        <rect x="77" y="45" width="8" height="20" rx="4" fill="#2563EB" />
+                        <rect x="20" y="30" width="60" height="45" rx="22" fill="#F8FAFC" stroke="#2563EB"
+                            stroke-width="2" />
+                        <rect x="27" y="38" width="46" height="30" rx="15" fill="#0F172A" />
+                        <path d="M 35 55 Q 40 48 45 55" fill="none" stroke="#4ADE80" stroke-width="4"
+                            stroke-linecap="round" />
+                        <path d="M 55 55 Q 60 48 65 55" fill="none" stroke="#4ADE80" stroke-width="4"
+                            stroke-linecap="round" />
+                        <rect x="40" y="75" width="20" height="8" rx="3" fill="#2563EB" />
+                    </svg>
+                </div>
+                <div class="bg-gray-100 p-3 rounded-2xl rounded-tl-none text-sm text-gray-700 shadow-sm">
+                    Hello! I'm your Smart Home Assistant. Try typing <span class="font-bold text-brand-blue">"Turn on
+                        the night lamp in bed room 1"</span> or <span class="font-bold text-brand-blue">"Turn off the
+                        living room light"</span>.
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 bg-white border-t border-gray-100">
+            <div class="relative flex items-center">
+                <input type="text" id="chat-input" onkeypress="handleChatEnter(event)" placeholder="Type a command..."
+                    class="w-full bg-gray-100 text-gray-800 px-4 py-3 pl-4 pr-12 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-blue transition-shadow text-sm">
+                <button onclick="sendChatMessage()"
+                    class="absolute right-2 w-8 h-8 rounded-xl bg-brand-blue text-white flex items-center justify-center hover:bg-blue-600 transition-colors shadow-sm">
+                    <i class="fas fa-paper-plane text-xs"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ── API Configuration ──────────────────────────────────
+        const API_BASE = window.location.origin + '/api/v1';
+        let authToken = localStorage.getItem('auth_token') || '';
+        let refreshToken = localStorage.getItem('refresh_token') || '';
+        let chatSessionId = localStorage.getItem('chat_session_id') || '';
+        let currentUser = null;
+        let ws = null;
+
+        // ── State ──────────────────────────────────────────────
+        let state = {
+            activePage: 'splash',
+            loginTab: 'house',
+            currentHomeName: 'SmartHome',
+            currentLocation: 'Tembalang, Semarang',
+            rooms: [],
+            currentRoomId: null,
+            currentRoomUUID: null,
+            currentRoomDevices: []
+        };
+
+        // ── API Helper ─────────────────────────────────────────
+        async function api(method, path, body = null, retry = true) {
+            const opts = {
+                method,
+                headers: { 'Content-Type': 'application/json' }
+            };
+            if (authToken) opts.headers['Authorization'] = 'Bearer ' + authToken;
+            if (body) opts.body = JSON.stringify(body);
+
+            let res = await fetch(API_BASE + path, opts);
+
+            // Auto-refresh token on 401
+            if (res.status === 401 && retry && refreshToken) {
+                const refreshed = await refreshAuthToken();
+                if (refreshed) return api(method, path, body, false);
+            }
+            return res;
+        }
+
+        async function apiForm(path, formData) {
+            const opts = {
+                method: 'POST',
+                body: formData
+            };
+            return fetch(API_BASE + path, opts);
+        }
+
+        async function refreshAuthToken() {
+            try {
+                const res = await fetch(API_BASE + '/auth/refresh', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refresh_token: refreshToken })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    authToken = data.access_token;
+                    refreshToken = data.refresh_token;
+                    localStorage.setItem('auth_token', authToken);
+                    localStorage.setItem('refresh_token', refreshToken);
+                    return true;
+                }
+            } catch (e) {}
+            logout();
+            return false;
+        }
+
+        // ── Toast Notification ─────────────────────────────────
+        function showToast(msg, type = 'info') {
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                info: 'bg-brand-blue'
+            };
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 z-[200] ${colors[type] || colors.info} text-white px-5 py-3 rounded-2xl shadow-lg text-sm font-medium transition-all transform translate-x-0 opacity-100`;
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(100px)'; }, 2500);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // ── WebSocket Connection ───────────────────────────────
+        function connectWebSocket() {
+            if (ws && ws.readyState <= 1) return;
+            if (!authToken) return;
+            const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${location.host}/api/v1/ws?token=${authToken}`;
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                const statusEl = document.querySelector('#assistant-panel .text-green-500');
+                if (statusEl) statusEl.textContent = 'Online';
+            };
+            ws.onmessage = (evt) => {
+                try {
+                    const data = JSON.parse(evt.data);
+                    handleWsEvent(data);
+                } catch (e) {}
+            };
+            ws.onclose = () => {
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        function handleWsEvent(data) {
+            const type = data.type || data.event;
+            if (type === 'device_status_update') {
+                // Refresh current room if viewing it
+                if (state.activePage === 'room' && state.currentRoomUUID) {
+                    loadRoomDevices(state.currentRoomUUID);
+                }
+                loadRooms();
+            } else if (type === 'telemetry_update') {
+                if (state.activePage === 'room' && state.currentRoomUUID) {
+                    loadRoomDevices(state.currentRoomUUID);
+                }
+            }
+        }
+
+        // ── DOMContentLoaded ───────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set current date displays
+            const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+            document.querySelectorAll('.current-date-display').forEach(el => el.textContent = dateStr);
+
+            if (authToken) {
+                loadUserAndGo();
+            } else {
+                navigate('splash');
+            }
+        });
+
+        async function loadUserAndGo() {
+            try {
+                const res = await api('GET', '/auth/me');
+                if (res.ok) {
+                    currentUser = await res.json();
+                    state.currentHomeName = currentUser.full_name || currentUser.email.split('@')[0];
+                    updateProfileUI();
+                    navigate('home');
+                    await loadRooms();
+                    connectWebSocket();
+                    loadSystemStatus();
+                } else {
+                    navigate('splash');
+                }
+            } catch (e) {
+                navigate('splash');
+            }
+        }
+
+        function updateProfileUI() {
+            const name = state.currentHomeName;
+            const settingsHomeEl = document.getElementById('settings-home-name');
+            if (settingsHomeEl) settingsHomeEl.textContent = name;
+            const settingsLocEl = document.getElementById('settings-location');
+            if (settingsLocEl) settingsLocEl.textContent = state.currentLocation;
+            // Update avatar
+            document.querySelectorAll('img[alt="Profile"]').forEach(img => {
+                img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=fff&color=2563EB`;
+            });
+        }
+
+        async function loadSystemStatus() {
+            try {
+                const res = await api('GET', '/system/status');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.avg_temperature) {
+                        // Update weather widget with actual sensor data
+                    }
+                }
+            } catch (e) {}
+        }
+
+        // ── Navigation ─────────────────────────────────────────
+        function navigate(pageId) {
+            state.activePage = pageId;
+            document.querySelectorAll('.page').forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('page-transition');
+            });
+            const target = document.getElementById(`page-${pageId}`);
+            if (target) {
+                target.classList.remove('hidden');
+                void target.offsetWidth;
+                target.classList.add('page-transition');
+            }
+            const nav = document.getElementById('main-nav');
+            const fab = document.getElementById('assistant-fab');
+            const panel = document.getElementById('assistant-panel');
+
+            if (['splash', 'login', 'register'].includes(pageId)) {
+                nav.classList.add('hidden');
+                nav.classList.remove('md:flex');
+                if (fab) fab.classList.add('hidden');
+                if (panel && !panel.classList.contains('translate-x-full')) {
+                    panel.classList.add('translate-x-full');
+                }
+            } else {
+                nav.classList.remove('hidden');
+                nav.classList.add('md:flex');
+                if (fab) fab.classList.remove('hidden');
+                updateNavStyles(pageId);
+            }
+            window.scrollTo(0, 0);
+        }
+
+        function updateNavStyles(activePage) {
+            ['home', 'schedule', 'settings'].forEach(p => {
+                const btn = document.getElementById(`nav-${p}`);
+                if (!btn) return;
+                if (p === activePage || (activePage === 'room' && p === 'home')) {
+                    btn.className = 'nav-btn flex flex-col md:flex-row items-center p-3 rounded-xl text-brand-blue bg-blue-50 transition-all';
+                } else {
+                    btn.className = 'nav-btn flex flex-col md:flex-row items-center p-3 rounded-xl text-gray-500 hover:text-brand-blue transition-all';
+                }
+            });
+        }
+
+        // ── Login Tab Switch ───────────────────────────────────
+        function switchLoginTab(tab) {
+            state.loginTab = tab;
+            const btnHouse = document.getElementById('tab-house');
+            const btnQr = document.getElementById('tab-qr');
+            const formHouse = document.getElementById('form-house');
+            const formQr = document.getElementById('form-qr');
+            const inactiveClass = 'flex-1 py-2 text-sm font-semibold rounded-lg text-gray-500 hover:text-gray-800 transition-all bg-transparent shadow-none';
+            const activeClass = 'flex-1 py-2 text-sm font-semibold rounded-lg bg-white shadow-sm text-brand-blue transition-all';
+            if (tab === 'house') {
+                btnHouse.className = activeClass; btnQr.className = inactiveClass;
+                formHouse.classList.remove('hidden'); formQr.classList.add('hidden');
+            } else {
+                btnQr.className = activeClass; btnHouse.className = inactiveClass;
+                formQr.classList.remove('hidden'); formHouse.classList.add('hidden');
+            }
+        }
+
+        // ── Login (Backend Auth) ───────────────────────────────
+        async function login() {
+            const emailInput = document.getElementById('login-house-id');
+            const passInput = document.querySelector('#form-house input[type="password"]');
+            const email = emailInput ? emailInput.value.trim() : '';
+            const password = passInput ? passInput.value.trim() : '';
+
+            if (!email || !password) {
+                showToast('Please enter email and password', 'error');
+                return;
+            }
+
+            // Backend uses OAuth2PasswordRequestForm (form-urlencoded)
+            const formData = new URLSearchParams();
+            formData.append('username', email);
+            formData.append('password', password);
+
+            try {
+                const res = await fetch(API_BASE + '/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    authToken = data.access_token;
+                    refreshToken = data.refresh_token;
+                    localStorage.setItem('auth_token', authToken);
+                    localStorage.setItem('refresh_token', refreshToken);
+                    showToast('Login successful!', 'success');
+                    if (emailInput) emailInput.value = '';
+                    if (passInput) passInput.value = '';
+                    await loadUserAndGo();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    showToast(err.detail || 'Invalid email or password', 'error');
+                }
+            } catch (e) {
+                showToast('Cannot connect to server', 'error');
+            }
+        }
+
+        // ── Register (Backend Auth) ────────────────────────────
+        async function registerNewHome() {
+            const nameInput = document.getElementById('reg-home-name').value.trim();
+            const emailInput = document.getElementById('reg-house-id').value.trim();
+            const locInput = document.getElementById('reg-location').value.trim();
+            const passInput = document.getElementById('reg-password').value.trim();
+
+            if (!emailInput || !passInput) {
+                showToast('Email and password are required', 'error');
+                return;
+            }
+            if (passInput.length < 8) {
+                showToast('Password must be at least 8 characters', 'error');
+                return;
+            }
+
+            try {
+                const res = await api('POST', '/auth/register', {
+                    email: emailInput,
+                    password: passInput,
+                    full_name: nameInput || null
+                });
+                if (res.ok || res.status === 201) {
+                    showToast('Account created! Logging in...', 'success');
+                    if (locInput) state.currentLocation = locInput;
+                    // Auto-login after register
+                    const formData = new URLSearchParams();
+                    formData.append('username', emailInput);
+                    formData.append('password', passInput);
+                    const loginRes = await fetch(API_BASE + '/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: formData
+                    });
+                    if (loginRes.ok) {
+                        const data = await loginRes.json();
+                        authToken = data.access_token;
+                        refreshToken = data.refresh_token;
+                        localStorage.setItem('auth_token', authToken);
+                        localStorage.setItem('refresh_token', refreshToken);
+                        await loadUserAndGo();
+                    }
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    showToast(err.detail || 'Registration failed', 'error');
+                }
+            } catch (e) {
+                showToast('Cannot connect to server', 'error');
+            }
+        }
+
+        // ── Room type -> icon/color mapping ────────────────────
+        const roomMeta = {
+            living_room: { icon: 'fa-couch', color: 'bg-orange-100 text-orange-500' },
+            bedroom: { icon: 'fa-bed', color: 'bg-blue-100 text-blue-500' },
+            kitchen: { icon: 'fa-utensils', color: 'bg-red-100 text-red-500' },
+            bathroom: { icon: 'fa-bath', color: 'bg-teal-100 text-teal-500' },
+            garage: { icon: 'fa-car', color: 'bg-gray-200 text-gray-600' },
+            kamar: { icon: 'fa-bed', color: 'bg-purple-100 text-purple-500' },
+            dapur: { icon: 'fa-utensils', color: 'bg-red-100 text-red-500' },
+            'ruang-tamu': { icon: 'fa-couch', color: 'bg-orange-100 text-orange-500' },
+            'ruang-rapat': { icon: 'fa-briefcase', color: 'bg-indigo-100 text-indigo-500' },
+        };
+
+        function getRoomMeta(room) {
+            const slug = (room.slug || room.room_type || '').toLowerCase();
+            for (const [key, val] of Object.entries(roomMeta)) {
+                if (slug.includes(key)) return val;
+            }
+            if (room.icon) return { icon: room.icon.replace('mdi:', 'fa-'), color: 'bg-gray-100 text-gray-500' };
+            return { icon: 'fa-door-closed', color: 'bg-gray-100 text-gray-500' };
+        }
+
+        const deviceIcons = {
+            light: 'fa-lightbulb', ac: 'fa-snowflake', tv: 'fa-tv', fan: 'fa-fan',
+            plug: 'fa-plug', camera: 'fa-video', cooker: 'fa-bowl-rice', door: 'fa-warehouse',
+            sensor: 'fa-temperature-half', lock: 'fa-lock', speaker: 'fa-volume-up'
+        };
+
+        function getDeviceIcon(type) {
+            return deviceIcons[(type || '').toLowerCase()] || 'fa-microchip';
+        }
+
+        // ── Load Rooms from Backend ────────────────────────────
+        async function loadRooms() {
+            try {
+                const res = await api('GET', '/rooms?page_size=50');
+                if (!res.ok) return;
+                const data = await res.json();
+                state.rooms = data.items || [];
+                renderDashboardRooms();
+            } catch (e) {}
+        }
+
+        function renderDashboardRooms(searchQuery = '') {
+            const container = document.getElementById('rooms-grid');
+            if (!container) return;
+            container.innerHTML = '';
+
+            let filtered = state.rooms;
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                filtered = filtered.filter(r => r.name.toLowerCase().includes(q));
+            }
+
+            if (filtered.length === 0 && searchQuery) {
+                container.innerHTML = `<div class="col-span-full text-center text-gray-500 py-8">No rooms found matching "${searchQuery}"</div>`;
+            }
+
+            filtered.forEach(room => {
+                const meta = getRoomMeta(room);
+                const activeCount = room.active_devices_count ?? 0;
+                const isActive = activeCount > 0;
+                const cardClass = isActive
+                    ? 'bg-[#EBFBF0] text-gray-900 border-[#B7F0C8] shadow-sm hover:border-[#86E7A4]'
+                    : 'bg-white text-gray-800 border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200';
+                const statusClass = isActive
+                    ? 'text-[#22C55E] font-semibold'
+                    : 'text-gray-400 font-medium';
+
+                const cardHTML = `
+                    <div onclick="openRoom('${room.id}')" class="rounded-3xl p-5 border cursor-pointer transition-all duration-300 ${cardClass} relative overflow-hidden group">
+                        <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${meta.color}">
+                            <i class="fas ${meta.icon} text-xl"></i>
+                        </div>
+                        <h3 class="font-bold text-lg leading-tight mb-1 transition-colors group-hover:text-brand-blue">${room.name}</h3>
+                        <p class="text-sm ${statusClass}">${activeCount} active</p>
+                    </div>
+                `;
+                container.innerHTML += cardHTML;
+            });
+
+            if (!searchQuery) {
+                container.innerHTML += `
+                    <div onclick="openModal('modal-add-room')" class="rounded-3xl p-5 border-2 border-dashed border-gray-300 cursor-pointer flex flex-col items-center justify-center text-gray-500 hover:bg-gray-100 hover:border-brand-blue hover:text-brand-blue transition-all duration-300 min-h-[160px] group">
+                        <div class="w-12 h-12 rounded-2xl bg-gray-100 group-hover:bg-blue-100 flex items-center justify-center mb-3 transition-colors">
+                            <i class="fas fa-plus text-xl group-hover:text-brand-blue transition-colors"></i>
+                        </div>
+                        <span class="font-semibold text-sm">Add Room</span>
+                    </div>`;
+            }
+        }
+
+        function handleSearch() {
+            renderDashboardRooms(document.getElementById('dashboard-search').value.trim());
+        }
+
+        // ── Open Room (load devices from backend) ──────────────
+        async function openRoom(roomId) {
+            state.currentRoomUUID = roomId;
+            navigate('room');
+            await loadRoomDevices(roomId);
+        }
+
+        async function loadRoomDevices(roomId) {
+            try {
+                const res = await api('GET', `/rooms/${roomId}`);
+                if (!res.ok) { showToast('Failed to load room', 'error'); return; }
+                const room = await res.json();
+                state.currentRoomDevices = room.devices || [];
+
+                document.getElementById('room-title').textContent = room.name;
+                const total = state.currentRoomDevices.length;
+                const active = state.currentRoomDevices.filter(d => d.state === 'on').length;
+                document.getElementById('room-stats').innerHTML = `<span class="${active > 0 ? 'text-brand-blue font-bold' : ''}">${active}/${total} Active</span> &bull; ${total} connected devices`;
+
+                // Scene card - generate based on room type
+                const sceneCard = document.getElementById('room-scene-card');
+                const meta = getRoomMeta(room);
+                document.getElementById('scene-icon').className = `fas ${meta.icon} text-2xl text-white`;
+                document.getElementById('scene-title').textContent = room.name;
+                document.getElementById('scene-desc').textContent = `${active} of ${total} devices active`;
+                sceneCard.classList.remove('hidden');
+
+                // Show avg temperature if available
+                const tempDevice = state.currentRoomDevices.find(d => d.temperature != null);
+                const existingBadge = sceneCard.querySelector('.temp-badge');
+                if (existingBadge) existingBadge.remove();
+                if (tempDevice && tempDevice.temperature) {
+                    const badge = document.createElement('div');
+                    badge.className = 'absolute top-6 right-6 text-2xl font-bold opacity-80 temp-badge';
+                    badge.textContent = tempDevice.temperature.toFixed(1) + '°C';
+                    sceneCard.appendChild(badge);
+                }
+
+                renderDevices();
+            } catch (e) {
+                showToast('Connection error', 'error');
+            }
+        }
+
+        function renderDevices() {
+            const container = document.getElementById('devices-list');
+            container.innerHTML = '';
+
+            state.currentRoomDevices.forEach(device => {
+                const isOn = device.state === 'on';
+                const icon = getDeviceIcon(device.device_type);
+                const checkboxStyle = isOn ? 'right-0 border-brand-blue' : 'right-6 border-gray-300';
+                const labelStyle = isOn ? 'bg-brand-blue' : 'bg-gray-300';
+
+                const extraInfo = [];
+                if (device.temperature != null) extraInfo.push(`${device.temperature.toFixed(1)}°C`);
+                if (device.humidity != null) extraInfo.push(`${device.humidity.toFixed(0)}%`);
+                if (device.brightness != null) extraInfo.push(`Brightness: ${device.brightness}%`);
+                const extraStr = extraInfo.length ? ` &bull; ${extraInfo.join(' &bull; ')}` : '';
+
+                container.innerHTML += `
+                    <div class="bg-white rounded-3xl p-5 flex items-center justify-between shadow-sm border border-gray-100 transition-all hover:shadow-md" data-device-id="${device.device_id}">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl flex items-center justify-center ${isOn ? 'bg-blue-100 text-brand-blue' : 'bg-gray-100 text-gray-500'} transition-colors">
+                                <i class="fas ${icon} text-xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-800">${device.name}</h4>
+                                <p class="text-xs font-medium ${isOn ? 'text-brand-blue' : 'text-gray-400'} uppercase tracking-wider mt-1">${device.device_type} ${isOn ? 'Active' : 'Standby'}${extraStr}</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end gap-1">
+                            <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in cursor-pointer" onclick="toggleDevice('${device.device_id}', ${isOn})">
+                                <div class="absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none transition-all duration-300 z-10 top-0 ${checkboxStyle}"></div>
+                                <div class="block overflow-hidden h-6 rounded-full transition-colors duration-300 ${labelStyle}"></div>
+                            </div>
+                            <span class="text-xs font-bold text-gray-400 uppercase">${isOn ? 'on' : 'off'}</span>
+                        </div>
+                    </div>`;
+            });
+
+            container.innerHTML += `
+                <div onclick="openModal('modal-add-device')" class="rounded-3xl p-5 border-2 border-dashed border-gray-300 cursor-pointer flex flex-col items-center justify-center text-gray-500 hover:bg-gray-100 hover:border-brand-blue hover:text-brand-blue transition-all duration-300 min-h-[100px] group">
+                    <div class="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-blue-100 flex items-center justify-center mb-2 transition-colors">
+                        <i class="fas fa-plus text-lg group-hover:text-brand-blue transition-colors"></i>
+                    </div>
+                    <span class="font-semibold text-sm">Add Device</span>
+                </div>`;
+        }
+
+        // ── Toggle Device (Backend Command) ────────────────────
+        async function toggleDevice(deviceId, currentlyOn) {
+            const action = currentlyOn ? 'turn_off' : 'turn_on';
+            // Optimistic UI update
+            const card = document.querySelector(`[data-device-id="${deviceId}"]`);
+            if (card) card.style.opacity = '0.6';
+
+            try {
+                const res = await api('POST', `/commands/${deviceId}`, { action });
+                if (res.ok) {
+                    showToast(`${deviceId} ${action === 'turn_on' ? 'turned on' : 'turned off'}`, 'success');
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    showToast(err.detail || 'Command failed', 'error');
+                }
+            } catch (e) {
+                showToast('Connection error', 'error');
+            }
+
+            // Reload room data
+            if (state.currentRoomUUID) await loadRoomDevices(state.currentRoomUUID);
+            loadRooms();
+        }
+
+        // ── Modals ─────────────────────────────────────────────
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.add('hidden'); modal.classList.remove('flex');
+                const form = modal.querySelector('form');
+                if (form) form.reset();
+            }
+        }
+
+        // ── Add Room (Backend) ─────────────────────────────────
+        async function submitAddRoom(e) {
+            e.preventDefault();
+            const name = document.getElementById('new-room-name').value.trim();
+            const type = document.getElementById('new-room-type').value;
+            if (!name) return;
+
+            const typeMap = { living: 'living_room', bed: 'bedroom', kitchen: 'kitchen', bath: 'bathroom', garage: 'garage' };
+            const roomType = typeMap[type] || type;
+            const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+            try {
+                const res = await api('POST', '/rooms', {
+                    name, slug, room_type: roomType,
+                    icon: null, description: null
+                });
+                if (res.ok || res.status === 201) {
+                    showToast('Room created!', 'success');
+                    closeModal('modal-add-room');
+                    await loadRooms();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    showToast(err.detail || 'Failed to create room', 'error');
+                }
+            } catch (e) {
+                showToast('Connection error', 'error');
+            }
+        }
+
+        // ── Add Device (Backend) ───────────────────────────────
+        async function submitAddDevice(e) {
+            e.preventDefault();
+            const name = document.getElementById('new-device-name').value.trim();
+            const type = document.getElementById('new-device-type').value;
+            if (!name || !state.currentRoomUUID) return;
+
+            const deviceId = type.toLowerCase() + '_' + name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') + '_' + Math.random().toString(36).substr(2, 4);
+
+            try {
+                const res = await api('POST', '/devices', {
+                    device_id: deviceId,
+                    name,
+                    device_type: type.toLowerCase(),
+                    room_id: state.currentRoomUUID,
+                    state: 'off'
+                });
+                if (res.ok || res.status === 201) {
+                    showToast('Device added!', 'success');
+                    closeModal('modal-add-device');
+                    await loadRoomDevices(state.currentRoomUUID);
+                    loadRooms();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    showToast(err.detail || 'Failed to add device', 'error');
+                }
+            } catch (e) {
+                showToast('Connection error', 'error');
+            }
+        }
+
+        // ── AI Chat (Backend Gemini) ───────────────────────────
+        function toggleAssistant() {
+            const panel = document.getElementById('assistant-panel');
+            panel.classList.toggle('translate-x-full');
+        }
+
+        function handleChatEnter(e) {
+            if (e.key === 'Enter') sendChatMessage();
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            appendMessage('user', message);
+            input.value = '';
+            input.disabled = true;
+
+            // Show typing indicator
+            const typingId = showTypingIndicator();
+
+            try {
+                let currentRoomName = null;
+                if (state.activePage === 'room' && state.currentRoomUUID) {
+                    const r = state.rooms.find(x => x.id === state.currentRoomUUID);
+                    if (r) currentRoomName = r.name;
+                }
+
+                const body = { message };
+                if (chatSessionId) body.session_id = chatSessionId;
+                if (currentRoomName) body.room_context = currentRoomName;
+
+                const res = await api('POST', '/chat/message', body);
+
+                removeTypingIndicator(typingId);
+
+                if (res.ok) {
+                    const data = await res.json();
+                    chatSessionId = data.session_id;
+                    localStorage.setItem('chat_session_id', chatSessionId);
+
+                    appendMessage('assistant', data.reply);
+
+                    // Always refresh devices and rooms so UI immediately reflects changes
+                    if (state.currentRoomUUID) await loadRoomDevices(state.currentRoomUUID);
+                    await loadRooms();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    appendMessage('assistant', err.detail || 'Waduh error nih, coba lagi ya!');
+                }
+            } catch (e) {
+                removeTypingIndicator(typingId);
+                appendMessage('assistant', 'Ga bisa konek ke server nih, coba lagi ya!');
+            }
+
+            input.disabled = false;
+            input.focus();
+        }
+
+        function showTypingIndicator() {
+            const chatBody = document.getElementById('chat-body');
+            const id = 'typing-' + Date.now();
+            const div = document.createElement('div');
+            div.id = id;
+            div.className = 'flex items-start gap-3 w-5/6';
+            div.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-white flex-shrink-0 flex items-center justify-center mt-1 border border-gray-200">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5">
+                        <rect x="20" y="30" width="60" height="45" rx="22" fill="#F8FAFC" stroke="#2563EB" stroke-width="2" />
+                        <rect x="27" y="38" width="46" height="30" rx="15" fill="#0F172A" />
+                    </svg>
+                </div>
+                <div class="bg-gray-100 p-3 rounded-2xl rounded-tl-none text-sm text-gray-400 shadow-sm flex items-center gap-1">
+                    <span class="inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay:0ms"></span>
+                    <span class="inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay:150ms"></span>
+                    <span class="inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay:300ms"></span>
+                </div>`;
+            chatBody.appendChild(div);
+            chatBody.scrollTop = chatBody.scrollHeight;
+            return id;
+        }
+
+        function removeTypingIndicator(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        const botSvgIcon = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5">
+            <rect x="47" y="15" width="6" height="15" fill="#2563EB" />
+            <circle cx="50" cy="12" r="6" fill="#2563EB" />
+            <rect x="15" y="45" width="8" height="20" rx="4" fill="#2563EB" />
+            <rect x="77" y="45" width="8" height="20" rx="4" fill="#2563EB" />
+            <rect x="20" y="30" width="60" height="45" rx="22" fill="#F8FAFC" stroke="#2563EB" stroke-width="2" />
+            <rect x="27" y="38" width="46" height="30" rx="15" fill="#0F172A" />
+            <path d="M 35 55 Q 40 48 45 55" fill="none" stroke="#4ADE80" stroke-width="4" stroke-linecap="round" />
+            <path d="M 55 55 Q 60 48 65 55" fill="none" stroke="#4ADE80" stroke-width="4" stroke-linecap="round" />
+            <rect x="40" y="75" width="20" height="8" rx="3" fill="#2563EB" />
+        </svg>`;
+
+        function appendMessage(sender, text) {
+            const chatBody = document.getElementById('chat-body');
+            const msgDiv = document.createElement('div');
+            if (sender === 'user') {
+                msgDiv.className = 'flex items-start gap-3 w-5/6 self-end justify-end';
+                msgDiv.innerHTML = `<div class="bg-brand-blue text-white p-3 rounded-2xl rounded-tr-none text-sm shadow-sm shadow-blue-500/20">${escapeHtml(text)}</div>`;
+            } else {
+                msgDiv.className = 'flex items-start gap-3 w-5/6';
+                msgDiv.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-white flex-shrink-0 flex items-center justify-center mt-1 border border-gray-200">${botSvgIcon}</div>
+                    <div class="bg-gray-100 p-3 rounded-2xl rounded-tl-none text-sm text-gray-700 shadow-sm">${escapeHtml(text)}</div>`;
+            }
+            chatBody.appendChild(msgDiv);
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // ── Settings ───────────────────────────────────────────
+        function toggleProfileDetails() {
+            const menu = document.getElementById('profile-details-menu');
+            const chevron = document.getElementById('profile-chevron');
+            if (menu.classList.contains('hidden')) {
+                menu.classList.remove('hidden');
+                chevron.style.transform = 'rotate(90deg)';
+            } else {
+                menu.classList.add('hidden');
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function logout() {
+            authToken = '';
+            refreshToken = '';
+            chatSessionId = '';
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('chat_session_id');
+            if (ws) { ws.close(); ws = null; }
+            currentUser = null;
+            state.rooms = [];
+            const menu = document.getElementById('profile-details-menu');
+            if (menu) menu.classList.add('hidden');
+            const chevron = document.getElementById('profile-chevron');
+            if (chevron) chevron.style.transform = 'rotate(0deg)';
+            navigate('splash');
+        }
+
+        async function resetData() {
+            if (!confirm("Are you sure you want to reset all rooms and devices? This cannot be undone.")) return;
+            try {
+                await api('POST', '/system/reset');
+                showToast('All data reset!', 'info');
+                chatSessionId = '';
+                localStorage.removeItem('chat_session_id');
+                await loadRooms();
+                navigate('home');
+            } catch (e) {
+                showToast('Reset failed', 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>

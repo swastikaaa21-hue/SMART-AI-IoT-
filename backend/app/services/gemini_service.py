@@ -33,7 +33,7 @@ _control_device_fn = FunctionDeclaration(
         "properties": {
             "device_id": {
                 "type": "string",
-                "description": "The unique identifier of the device (e.g. 'esp32_light_01').",
+                "description": "The identifier of the device (e.g. 'dev-km-1' for Lampu Kamar, 'dev-km-2' for AC Kamar, or 'lampu kamar').",
             },
             "action": {
                 "type": "string",
@@ -147,39 +147,42 @@ PERSONALITY & TONE:
 - Pakai bahasa gaul Indonesia natural: "gue", "lu", "udah", "nih", "bro", "dong", "sih"
 - Super casual tapi tetap helpful
 - Hemat kata, to the point, ga bertele-tele
-- Jangan pernah pakai kata formal seperti: "dipahami", "dieksekusi", "perintah"
+- Jangan pernah pakai kata formal seperti: "dipahami", "dieksekusi", "perintah", "terdapat"
+- Kalau user ngomong bahasa Inggris, jawab bahasa Inggris casual juga
 
 RESPONSE STYLE:
-- SELALU jawab maksimal 1 kalimat pendek (5-10 kata)
-- Langsung kasih konfirmasi hasil tanpa penjelasan panjang
-- Pakai emoji kalau cocok tapi jangan berlebihan
+- SELALU jawab maksimal 1-2 kalimat pendek (5-15 kata)
+- Jangan ulangi perintah user
+- Emoji boleh tapi hemat, max 1 per jawaban
 
-CONTOH JAWABAN YANG BENAR:
-User: "nyalakan lampu"
-❌ SALAH: "Perintah 'nyalakan lampu' dipahami dan dieksekusi oleh Smart Home."
-✅ BENAR: "Siap, lampu udah nyala!"
+DAFTAR PERANGKAT RUMAH:
+- Kamar:
+  * dev-km-1 (Lampu Kamar, type: light)
+  * dev-km-2 (AC Kamar, type: ac)
+  * dev-km-3 (Samsung TV, type: tv)
+  * dev-km-4 (Smart Tirai, type: curtain)
+- Ruang Tamu:
+  * dev-rt-1 (Lampu Utama, type: light)
+  * dev-rt-2 (Ambient Light, type: light)
+  * dev-rt-3 (LG Smart TV, type: tv)
+  * dev-rt-4 (Sony Soundbar, type: speaker)
+- Ruang Rapat:
+  * dev-rr-1 (Epson Projector, type: projector)
+  * dev-rr-2 (Daikin AC Rapat, type: ac)
+  * dev-rr-3 (Lampu Rapat Panel, type: light)
+- Studio:
+  * dev-st-1 (Sharp AC, type: ac)
+  * dev-st-2 (Lampu Studio, type: light)
 
-User: "matikan AC"
-❌ SALAH: "Perintah telah diterima dan dilaksanakan."
-✅ BENAR: "Oke, AC udah mati!"
-
-User: "ada lampu apa aja?"
-❌ SALAH: "Terdapat lampu kamar, lampu ruang tamu, dan lampu dapur."
-✅ BENAR: "Ada lampu kamar, ruang tamu, sama dapur nih."
-
-User: "halo"
-❌ SALAH: "Halo, ada yang bisa dibantu?"
-✅ BENAR: "Hai! Ada yang bisa gue bantu?"
-
-User: "berapa suhu?"
-❌ SALAH: "Suhu ruangan saat ini adalah 24.5°C."
-✅ BENAR: "Sekarang 24.5°C, adem nih!"
-
-WAJIB:
-1. Panggil function untuk kontrol/cek device
-2. Response maksimal 1 kaliat pendek
-3. Hindari kata-kata formal/kaku
-4. Bicara natural kayak chat sama temen
+ATURAN WAJIB & SCANNING:
+1. PERINTAH SATU RUANGAN (misal "nyalain semuanya yang ada di ruang tamu", "matikan semua di kamar"):
+   * Wajib panggil `control_room_devices` dengan nama/slug ruangan (misal: room="ruang-tamu", action="turn_on").
+2. PERINTAH TIDAK DETIL (misal cuma "nyalain ac", "matikan tv", "nyalakan lampu" tanpa menyebut nama ruangan):
+   * Jika ada `[Konteks Ruangan: User sedang membuka ruangan '...']`, PRIORITASKAN perangkat di ruangan tersebut!
+   * Jika TIDAK ada konteks ruangan dan ruangan belum jelas: Panggil function `list_devices` untuk SCANNING seluruh perangkat. Jika hanya ada 1 perangkat jenis itu di rumah, langsung kontrol perangkat itu. Jika ada lebih dari satu (misal AC Kamar dan AC Ruang Tamu), tanyakan ke user dengan singkat dan ramah: "Mau nyalain AC Kamar atau AC Ruang Tamu nih bro?".
+3. JANGAN PERNAH berasumsi atau mengarang konfirmasi sukses sebelum function selesai dieksekusi.
+4. JIKA function mengembalikan error atau success=false, KATAKAN gagal atau kendalanya ke user. JANGAN PERNAH bilang "Siap, udah beres!" jika function gagal!
+5. Response maksimal 1-2 kalimat pendek santai ala teman akrab.
 """
 
 
@@ -306,15 +309,18 @@ class GeminiService:
                 else:
                     function_result = {"error": "No function executor configured"}
 
-                # Track affected devices
-                if "device_id" in function_args and isinstance(function_args["device_id"], str):
-                    devices_affected.append(function_args["device_id"])
-                if isinstance(function_result, dict) and "devices" in function_result and isinstance(function_result["devices"], list):
-                    for dev_item in function_result["devices"]:
-                        if isinstance(dev_item, dict) and "device_id" in dev_item:
-                            devices_affected.append(str(dev_item["device_id"]))
-                        elif isinstance(dev_item, str):
-                            devices_affected.append(dev_item)
+                # Track affected devices only on success
+                if isinstance(function_result, dict) and function_result.get("success", False):
+                    if "device_id" in function_result:
+                        devices_affected.append(str(function_result["device_id"]))
+                    elif "device_id" in function_args and isinstance(function_args["device_id"], str):
+                        devices_affected.append(function_args["device_id"])
+                    if "devices" in function_result and isinstance(function_result["devices"], list):
+                        for dev_item in function_result["devices"]:
+                            if isinstance(dev_item, dict) and "device_id" in dev_item:
+                                devices_affected.append(str(dev_item["device_id"]))
+                            elif isinstance(dev_item, str):
+                                devices_affected.append(dev_item)
                 # Deduplicate while preserving order
                 devices_affected = list(dict.fromkeys(devices_affected))
 
@@ -415,7 +421,6 @@ class GeminiService:
     @staticmethod
     def _casualize_response(text: str) -> str:
         """Transform formal AI response into casual, natural language."""
-        # Remove overly formal phrases
         formal_phrases = [
             ("Perintah \"", ""),
             ("\" dipahami dan dieksekusi oleh Smart Home.", " udah beres!"),
@@ -423,7 +428,12 @@ class GeminiService:
             ("telah berhasil dijalankan", "udah jalan"),
             ("telah berhasil", "udah beres"),
             ("berhasil dijalankan", "udah jalan"),
+            ("telah dilakukan", "udah beres"),
+            ("telah dinyalakan", "udah nyala"),
+            ("telah dimatikan", "udah mati"),
+            ("telah diubah", "udah diubah"),
             ("Smart Home", ""),
+            ("smart home", ""),
             ("sistem", ""),
             ("perintah", ""),
             ("Perintah", ""),
@@ -431,20 +441,23 @@ class GeminiService:
             ("Terdapat", "Ada"),
             ("saat ini", "sekarang"),
             ("Saat ini", "Sekarang"),
+            ("Baik, ", ""),
+            ("Baiklah, ", ""),
+            ("Tentu, ", ""),
+            ("Dengan senang hati, ", ""),
         ]
         
         for old, new in formal_phrases:
             text = text.replace(old, new)
         
-        # Remove excessive punctuation
-        text = text.replace("..", ".")
-        text = text.strip()
+        # Remove excessive punctuation and whitespace
+        text = text.replace("..", ".").replace("  ", " ").strip()
         
-        # If still too formal, add casual touch
-        if len(text) > 50 and "udah" not in text.lower():
-            # Too long and still formal, shorten it
-            if "." in text:
-                text = text.split(".")[0] + "!"
+        # Truncate overly long responses
+        if len(text) > 80:
+            sentences = text.split(".")
+            if len(sentences) > 2:
+                text = ".".join(sentences[:2]).strip() + "!"
         
         return text
 

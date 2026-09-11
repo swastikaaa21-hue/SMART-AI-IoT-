@@ -49,14 +49,22 @@ async def list_rooms(
 
     result = await db.execute(
         base_query
+        .options(selectinload(Room.devices))
         .order_by(Room.created_at)
         .offset((page - 1) * page_size)
         .limit(page_size)
     )
     rooms = list(result.scalars().all())
 
+    items = []
+    for r in rooms:
+        data = RoomResponse.model_validate(r)
+        data.total_devices_count = len(r.devices)
+        data.active_devices_count = sum(1 for d in r.devices if d.state == "on")
+        items.append(data)
+
     return PaginatedResponse.create(
-        items=[RoomResponse.model_validate(r) for r in rooms],
+        items=items,
         total=total,
         page=page,
         page_size=page_size,
@@ -78,7 +86,11 @@ async def get_room(
     room = result.scalar_one_or_none()
     if not room:
         raise NotFoundError("Room", str(room_id))
-    return room
+
+    data = RoomWithDevices.model_validate(room)
+    data.total_devices_count = len(room.devices)
+    data.active_devices_count = sum(1 for d in room.devices if d.state == "on")
+    return data
 
 
 @router.post("", response_model=RoomResponse, status_code=201)

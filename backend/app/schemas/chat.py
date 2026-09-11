@@ -48,6 +48,7 @@ class AIChatRequest(BaseModel):
     """Request from frontend to the AI chat endpoint."""
     message: str = Field(..., min_length=1, max_length=5000)
     session_id: uuid.UUID | None = None
+    room_context: str | None = None
 
 
 class AIChatResponse(BaseModel):
