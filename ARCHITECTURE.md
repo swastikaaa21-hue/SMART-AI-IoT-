@@ -21,24 +21,24 @@ Dokumentasi arsitektur lengkap untuk memahami bagaimana semua komponen bekerja b
 │                      BACKEND ORCHESTRATOR LAYER                     │
 ├─────────────────────────────────────────────────────────────────────┤
 │  FastAPI Application (Python)                                       │
-│  ┌───────────────┐  ┌──────────────┐  ┌────────────────────────┐  │
-│  │  REST API     │  │  WebSocket   │  │  MQTT Handler          │  │
-│  │  Endpoints    │  │  Manager     │  │  (Subscribe/Publish)   │  │
-│  └───────┬───────┘  └──────┬───────┘  └──────┬─────────────────┘  │
-│          │                  │                  │                     │
-│  ┌───────┴──────────────────┴──────────────────┴─────────────────┐ │
-│  │              Service Layer                                     │ │
-│  │  - Gemini AI Service (function calling)                       │ │
-│  │  - MQTT Service (async TLS client)                            │ │
-│  │  - Device Service (CRUD + status management)                  │ │
-│  │  - Action Cache (pending_actions for confirmation)            │ │
-│  └────────────────────────────┬──────────────────────────────────┘ │
-│                                │                                     │
-│  ┌─────────────────────────────┴────────────────────────────────┐  │
-│  │              Database Layer (SQLAlchemy async)               │  │
-│  │  - Users, Homes, Devices, Timers tables                      │  │
-│  │  - SQLite (dev) / PostgreSQL (production)                    │  │
-│  └──────────────────────────────────────────────────────────────┘  │
+│  ┌───────────────┐   ┌──────────────┐   ┌────────────────────────┐  │
+│  │  REST API     │   │  WebSocket   │   │  MQTT Handler          │  │
+│  │  Endpoints    │   │  Manager     │   │  (Subscribe/Publish)   │  │
+│  └───────┬───────┘   └──────┬───────┘   └──────┬─────────────────┘  │
+│          │                  │                  │                    │
+│  ┌───────┴──────────────────┴──────────────────┴─────────────────┐  │
+│  │              Service Layer                                    │  │
+│  │  - Gemini AI Service (function calling)                       │  │
+│  │  - MQTT Service (async TLS client)                            │  │
+│  │  - Device Service (CRUD + status management)                  │  │
+│  │  - Action Cache (pending_actions for confirmation)            │  │
+│  └────────────────────────────┬──────────────────────────────────┘  │
+│                                │                                    │
+│  ┌─────────────────────────────┴────────────────────────────────┐   │
+│  │              Database Layer (SQLAlchemy async)               │   │
+│  │  - Users, Homes, Devices, Timers tables                      │   │
+│  │  - SQLite (dev) / PostgreSQL (production)                    │   │
+│  └──────────────────────────────────────────────────────────────┘   │
 └────────────────────────────┬────────────────────────────────────────┘
                              │
                              │ MQTT Protocol (TLS 8883)
