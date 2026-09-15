@@ -1090,13 +1090,12 @@
 
     <script>
         // ── API Configuration ──────────────────────────────────
-<<<<<<< HEAD
-        const API_BASE = (window.location.protocol === 'file:' || window.location.port !== '8000') ? 'http://127.0.0.1:8000/api/v1' : window.location.origin + '/api/v1';
-=======
-        const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        // Ganti dengan Render URL kamu setelah deploy backend
+        const RAILWAY_BACKEND_URL = 'https://smart-aiot-backend.onrender.com'; // <-- GANTI dengan Render URL kamu
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const API_BASE = isLocal
             ? 'http://localhost:8000/api/v1'
-            : window.location.origin + '/api/v1';
->>>>>>> 0f31cd81c2cc4ecb956ec1221f89ef16d9611877
+            : RAILWAY_BACKEND_URL + '/api/v1';
         let authToken = localStorage.getItem('auth_token') || '';
         let refreshToken = localStorage.getItem('refresh_token') || '';
         let chatSessionId = localStorage.getItem('chat_session_id') || '';
@@ -1473,9 +1472,9 @@
         function connectWebSocket() {
             if (ws && ws.readyState <= 1) return;
             if (!authToken) return;
-            const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-            const wsHost = isLocal ? 'localhost:8000' : location.host;
-            const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const isLocalWs = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+            const wsHost = isLocalWs ? 'localhost:8000' : new URL(RAILWAY_BACKEND_URL).host;
+            const protocol = RAILWAY_BACKEND_URL.startsWith('https') && !isLocalWs ? 'wss:' : (location.protocol === 'https:' ? 'wss:' : 'ws:');
             const wsUrl = `${protocol}//${wsHost}/api/v1/ws?token=${authToken}`;
             ws = new WebSocket(wsUrl);
 
