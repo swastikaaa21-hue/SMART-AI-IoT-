@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     SECRET_KEY: str = "change-me-in-production"
     API_V1_PREFIX: str = "/api/v1"
-    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
+    BACKEND_CORS_ORIGINS: Any = ["http://localhost:3000", "http://localhost:8000"]
 
     # ── Server ───────────────────────────────────────────────
     HOST: str = "0.0.0.0"
@@ -85,15 +85,23 @@ class Settings(BaseSettings):
     # ── Validators ───────────────────────────────────────────
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
-    def assemble_cors_origins(cls, v: str | List[str]) -> List[str]:
+    def assemble_cors_origins(cls, v: Any) -> List[str]:
         if isinstance(v, str):
             if not v or v.strip() == "":
                 return []
-            if v.startswith("["):
+            v_str = v.strip()
+            if v_str.startswith("["):
                 import json
-                return json.loads(v)
-            return [origin.strip() for origin in v.split(",") if origin.strip()]
-        return v
+                try:
+                    res = json.loads(v_str)
+                    if isinstance(res, list):
+                        return [str(item).strip() for item in res if str(item).strip()]
+                except Exception:
+                    pass
+            return [origin.strip() for origin in v_str.split(",") if origin.strip()]
+        elif isinstance(v, list):
+            return [str(item).strip() for item in v if str(item).strip()]
+        return []
 
     @property
     def is_production(self) -> bool:
