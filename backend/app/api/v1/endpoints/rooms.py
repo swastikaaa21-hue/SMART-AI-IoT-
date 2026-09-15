@@ -1,25 +1,22 @@
 """
-Room management endpoints.
+Room management endpoints — Supabase primary.
 """
 
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.core.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from app.db.session import get_db
+from app.db.supabase_session import get_db
 from app.middleware.auth import get_current_user
-from app.models.room import Room
-from app.models.user import User
 from app.schemas.common import PaginatedResponse, SuccessResponse
 from app.schemas.room import RoomCreate, RoomResponse, RoomUpdate, RoomWithDevices
 from app.utils.exceptions import AlreadyExistsError, NotFoundError
 from app.services.supabase_service import supabase_service
+from app.services.seed_service import seed_user_default_data
 
 router = APIRouter()
 
@@ -28,183 +25,132 @@ router = APIRouter()
 async def list_rooms(
     page: int = Query(1, ge=1),
     page_size: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(get_current_user),
+    db=Depends(get_db),
 ):
     """List all rooms belonging to the current user."""
-    base_query = select(Room).where(Room.owner_id == user.id)
+    owner_id = str(user["id"])
+    rooms = await supabase_service.get_rooms_by_owner_with_devices(owner_id)
 
-    count_result = await db.execute(
-        select(func.count()).select_from(base_query.subquery())
-    )
-    total = count_result.scalar_one()
+    # Auto-seed if empty
+    if not rooms:
+        await seed_user_default_data(owner_id, reset=False)
+        rooms = await supabase_service.get_rooms_by_owner_with_devices(owner_id)
 
-    # If user has 0 rooms, auto-seed default rooms
-    if total == 0:
-        from app.services.seed_service import seed_user_default_data
-        await seed_user_default_data(db, user.id, reset=False)
-        count_result = await db.execute(
-            select(func.count()).select_from(base_query.subquery())
-        )
-        total = count_result.scalar_one()
-
-    result = await db.execute(
-        base_query
-        .options(selectinload(Room.devices))
-        .order_by(Room.created_at)
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-    )
-    rooms = list(result.scalars().all())
+    total = len(rooms)
+    start = (page - 1) * page_size
+    end = start + page_size
+    page_items = rooms[start:end]
 
     items = []
-    for r in rooms:
-        data = RoomResponse.model_validate(r)
-        data.total_devices_count = len(r.devices)
-        data.active_devices_count = sum(1 for d in r.devices if d.state == "on")
-        items.append(data)
+    for r in page_items:
+        resp = RoomResponse(
+            id=r["id"],
+            name=r["name"],
+            slug=r["slug"],
+            room_type=r["room_type"],
+            description=r.get("description"),
+            icon=r.get("icon"),
+            owner_id=r["owner_id"],
+            created_at=r.get("created_at"),
+            updated_at=r.get("updated_at"),
+            total_devices_count=r.get("total_devices_count", 0),
+            active_devices_count=r.get("active_devices_count", 0),
+        )
+        items.append(resp)
 
-    return PaginatedResponse.create(
-        items=items,
-        total=total,
-        page=page,
-        page_size=page_size,
-    )
+    return PaginatedResponse.create(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.get("/{room_id}", response_model=RoomWithDevices)
 async def get_room(
-    room_id: uuid.UUID,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    room_id: str,
+    user: dict = Depends(get_current_user),
+    db=Depends(get_db),
 ):
     """Get a single room with its devices."""
-    result = await db.execute(
-        select(Room)
-        .where(Room.id == room_id, Room.owner_id == user.id)
-        .options(selectinload(Room.devices))
-    )
-    room = result.scalar_one_or_none()
-    if not room:
-        raise NotFoundError("Room", str(room_id))
+    room = await supabase_service.get_room_by_id(room_id)
+    if not room or room.get("owner_id") != str(user["id"]):
+        raise NotFoundError("Room", room_id)
 
-    data = RoomWithDevices.model_validate(room)
-    data.total_devices_count = len(room.devices)
-    data.active_devices_count = sum(1 for d in room.devices if d.state == "on")
-    return data
+    devices = await supabase_service.get_devices_by_room(room_id)
+    room["devices"] = devices
+    room["total_devices_count"] = len(devices)
+    room["active_devices_count"] = sum(1 for d in devices if d.get("state") == "on")
+    return room
 
 
 @router.post("", response_model=RoomResponse, status_code=201)
 async def create_room(
     body: RoomCreate,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(get_current_user),
+    db=Depends(get_db),
 ):
     """Create a new room."""
-    # Check for duplicate slug
-    existing = await db.execute(select(Room).where(Room.slug == body.slug))
-    if existing.scalar_one_or_none():
+    owner_id = str(user["id"])
+    existing = await supabase_service.get_room_by_slug(body.slug, owner_id)
+    if existing:
         raise AlreadyExistsError("Room", body.slug)
 
-    room = Room(
-        name=body.name,
-        slug=body.slug,
-        room_type=body.room_type,
-        description=body.description,
-        icon=body.icon,
-        owner_id=user.id,
-    )
-    db.add(room)
-    await db.flush()
-    await db.refresh(room)
-    
-    # Sync to Supabase
-    try:
-        await supabase_service.create_room({
-            "id": str(room.id),
-            "name": room.name,
-            "slug": room.slug,
-            "room_type": room.room_type,
-            "description": room.description,
-            "icon": room.icon,
-            "owner_id": str(room.owner_id),
-            "created_at": room.created_at.isoformat() if room.created_at else None,
-            "updated_at": room.updated_at.isoformat() if room.updated_at else None,
-        })
-    except Exception:
-        pass
-    
+    now = datetime.now(timezone.utc).isoformat()
+    room_id = str(uuid.uuid4()).replace("-", "")
+    room = await supabase_service.create_room({
+        "id": room_id,
+        "name": body.name,
+        "slug": body.slug,
+        "room_type": body.room_type,
+        "description": body.description,
+        "icon": body.icon,
+        "owner_id": owner_id,
+        "created_at": now,
+        "updated_at": now,
+    })
+    room["total_devices_count"] = 0
+    room["active_devices_count"] = 0
     return room
 
 
 @router.patch("/{room_id}", response_model=RoomResponse)
 async def update_room(
-    room_id: uuid.UUID,
+    room_id: str,
     body: RoomUpdate,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(get_current_user),
+    db=Depends(get_db),
 ):
     """Update an existing room."""
-    result = await db.execute(
-        select(Room).where(Room.id == room_id, Room.owner_id == user.id)
-    )
-    room = result.scalar_one_or_none()
-    if not room:
-        raise NotFoundError("Room", str(room_id))
+    room = await supabase_service.get_room_by_id(room_id)
+    if not room or room.get("owner_id") != str(user["id"]):
+        raise NotFoundError("Room", room_id)
 
+    updates = {}
     if body.name is not None:
-        room.name = body.name
+        updates["name"] = body.name
     if body.room_type is not None:
-        room.room_type = body.room_type
+        updates["room_type"] = body.room_type
     if body.description is not None:
-        room.description = body.description
+        updates["description"] = body.description
     if body.icon is not None:
-        room.icon = body.icon
+        updates["icon"] = body.icon
 
-    await db.flush()
-    await db.refresh(room)
-    
-    # Sync to Supabase
-    try:
-        updates = {}
-        if body.name is not None:
-            updates["name"] = room.name
-        if body.room_type is not None:
-            updates["room_type"] = room.room_type
-        if body.description is not None:
-            updates["description"] = room.description
-        if body.icon is not None:
-            updates["icon"] = room.icon
-        
-        if updates:
-            await supabase_service.update_room(str(room.id), updates)
-    except Exception:
-        pass
-    
+    if updates:
+        room = await supabase_service.update_room(room_id, updates)
+
+    devices = await supabase_service.get_devices_by_room(room_id)
+    room["total_devices_count"] = len(devices)
+    room["active_devices_count"] = sum(1 for d in devices if d.get("state") == "on")
     return room
 
 
 @router.delete("/{room_id}", response_model=SuccessResponse)
 async def delete_room(
-    room_id: uuid.UUID,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    room_id: str,
+    user: dict = Depends(get_current_user),
+    db=Depends(get_db),
 ):
     """Delete a room and all its associated devices."""
-    result = await db.execute(
-        select(Room).where(Room.id == room_id, Room.owner_id == user.id)
-    )
-    room = result.scalar_one_or_none()
-    if not room:
-        raise NotFoundError("Room", str(room_id))
+    room = await supabase_service.get_room_by_id(room_id)
+    if not room or room.get("owner_id") != str(user["id"]):
+        raise NotFoundError("Room", room_id)
 
-    await db.delete(room)
-    await db.flush()
-    
-    # Sync to Supabase
-    try:
-        await supabase_service.delete_room(str(room_id))
-    except Exception:
-        pass
-    
-    return SuccessResponse(message=f"Room '{room.name}' deleted successfully")
+    await supabase_service.delete_room(room_id)
+    return SuccessResponse(message=f"Room '{room.get('name', room_id)}' deleted successfully")

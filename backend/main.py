@@ -84,8 +84,11 @@ async def lifespan(app: FastAPI):
     mqtt_service.on_status(handle_device_status)
     mqtt_service.on_telemetry(handle_device_telemetry)
 
-    # 4. Connect to MQTT broker
-    await mqtt_service.connect()
+    # 4. Connect to MQTT broker (non-fatal if fails)
+    try:
+        await mqtt_service.connect()
+    except Exception as e:
+        logger.warning("mqtt_connect_failed", reason=str(e))
 
     logger.info("app_startup_complete")
 
@@ -110,12 +113,12 @@ def create_app() -> FastAPI:
         version=settings.APP_VERSION,
         description=(
             "Central Orchestrator Backend for SMART AI IoT Platform. "
-            "Connects Frontend (Next.js), Database (SQLite), "
+            "Connects Frontend, Database (Supabase), "
             "Broker (HiveMQ Cloud MQTT TLS), and AI (Google Gemini Function Calling)."
         ),
-        docs_url="/docs" if settings.DEBUG else None,
-        redoc_url="/redoc" if settings.DEBUG else None,
-        openapi_url="/openapi.json" if settings.DEBUG else None,
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_url="/openapi.json",
         lifespan=lifespan,
     )
 
@@ -181,7 +184,6 @@ def create_app() -> FastAPI:
                 "mqtt": "connected" if mqtt_service.is_connected else "disconnected",
                 "gemini": "ready" if gemini_service._initialised else "not_configured",
                 "websocket": f"{ws_manager.active_count} connections",
-                "database": "configured",
                 "supabase": "connected" if supabase_service._initialized else "not_configured",
             },
         )

@@ -1,27 +1,20 @@
 """
-AI Chat endpoints with Gemini Function Calling integration.
-
-Handles natural language interaction with the IoT system through Google Gemini.
+AI Chat endpoints with Gemini Function Calling — Supabase primary.
 """
 
 from __future__ import annotations
 
+import json
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select, func
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.core.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from app.core.logging import get_logger
-from app.db.session import get_db
+from app.db.supabase_session import get_db
 from app.middleware.auth import get_current_user
-from app.models.chat import ChatMessage, ChatSession
-from app.models.device import Device
-from app.models.room import Room
-from app.models.user import User
 from app.schemas.chat import (
     AIChatRequest,
     AIChatResponse,
@@ -45,60 +38,41 @@ def _normalize_room_slug(slug_or_name: str | None) -> str:
         return ""
     clean = slug_or_name.lower().strip().replace(" ", "-").replace("_", "-")
     aliases = {
-        "bedroom": "kamar",
-        "kamar-tidur": "kamar",
-        "living-room": "ruang-tamu",
-        "livingroom": "ruang-tamu",
-        "ruang-keluarga": "ruang-tamu",
-        "meeting-room": "ruang-rapat",
-        "office": "ruang-rapat",
-        "ruang-kerja": "ruang-rapat",
+        "bedroom": "kamar", "kamar-tidur": "kamar",
+        "living-room": "ruang-tamu", "livingroom": "ruang-tamu", "ruang-keluarga": "ruang-tamu",
+        "meeting-room": "ruang-rapat", "office": "ruang-rapat", "ruang-kerja": "ruang-rapat",
     }
     return aliases.get(clean, clean)
 
 
-async def _execute_function(
-    name: str,
-    args: dict[str, Any],
-    db: AsyncSession,
-) -> dict[str, Any]:
-    """
-    Execute an IoT function requested by Gemini Function Calling.
+async def _execute_function(name: str, args: dict[str, Any]) -> dict[str, Any]:
+    """Execute an IoT function requested by Gemini."""
 
-    This is the bridge between AI intent and actual device operations.
-    """
     if name == "control_device":
         dev_id = args.get("device_id", "")
         action = args.get("action", "")
-        # Normalize action if natural word was used
         if action in ["nyalakan", "hidupkan", "on"]:
             action = "turn_on"
         elif action in ["matikan", "padamkan", "off"]:
             action = "turn_off"
-
-        result = await device_manager.send_command(
-            db=db,
-            device_id=dev_id,
-            action=action,
-            value=args.get("value"),
-            source="ai",
+        return await device_manager.send_command(
+            device_id=dev_id, action=action, value=args.get("value"), source="ai",
         )
-        return result
 
     elif name == "get_device_status":
-        device = await device_manager.get_device(db, args.get("device_id", ""))
+        device = await device_manager.get_device(args.get("device_id", ""))
         if not device:
             return {"error": f"Device '{args.get('device_id')}' not found"}
         return {
-            "device_id": device.device_id,
-            "name": device.name,
-            "state": device.state,
-            "is_online": device.is_online,
-            "device_type": device.device_type,
-            "temperature": device.temperature,
-            "humidity": device.humidity,
-            "brightness": device.brightness,
-            "last_seen_at": str(device.last_seen_at) if device.last_seen_at else None,
+            "device_id": device.get("device_id"),
+            "name": device.get("name"),
+            "state": device.get("state"),
+            "is_online": device.get("is_online"),
+            "device_type": device.get("device_type"),
+            "temperature": device.get("temperature"),
+            "humidity": device.get("humidity"),
+            "brightness": device.get("brightness"),
+            "last_seen_at": device.get("last_seen_at"),
         }
 
     elif name == "list_devices":
@@ -108,53 +82,35 @@ async def _execute_function(
 
         room_id = None
         if room_slug:
-            result = await db.execute(select(Room).where(Room.slug == room_slug))
-            room = result.scalar_one_or_none()
-            if room:
-                room_id = room.id
+            # Find room by slug across all owners
+            all_rooms = await supabase_service.client.table("rooms").select("*").eq("slug", room_slug).execute()
+            if all_rooms.data:
+                room_id = all_rooms.data[0]["id"]
 
-        devices, total = await device_manager.list_devices(
-            db=db,
-            room_id=room_id,
-            device_type=dtype,
-            page=1,
-            page_size=50,
-        )
+        devices, total = await device_manager.list_devices(room_id=room_id, device_type=dtype, page=1, page_size=50)
         return {
             "total": total,
-            "devices": [
-                {
-                    "device_id": d.device_id,
-                    "name": d.name,
-                    "type": d.device_type,
-                    "state": d.state,
-                    "is_online": d.is_online,
-                    "room_name": d.room.name if d.room else None,
-                    "room_slug": d.room.slug if d.room else None,
-                }
-                for d in devices
-            ],
+            "devices": [{
+                "device_id": d.get("device_id"), "name": d.get("name"),
+                "type": d.get("device_type"), "state": d.get("state"),
+                "is_online": d.get("is_online"),
+                "room_name": d.get("room", {}).get("name"),
+                "room_slug": d.get("room", {}).get("slug"),
+            } for d in devices],
         }
 
     elif name == "get_telemetry":
         limit = min(args.get("limit", 10), 100)
-        logs, total = await device_manager.get_telemetry(
-            db=db,
-            device_id=args.get("device_id"),
-            limit=limit,
-        )
+        logs, total = await device_manager.get_telemetry(device_id=args.get("device_id"), limit=limit)
         return {
             "device_id": args.get("device_id"),
             "total_records": total,
-            "readings": [
-                {
-                    "temperature": log.temperature,
-                    "humidity": log.humidity,
-                    "power_watts": log.power_watts,
-                    "recorded_at": log.recorded_at.isoformat(),
-                }
-                for log in logs
-            ],
+            "readings": [{
+                "temperature": log.get("temperature"),
+                "humidity": log.get("humidity"),
+                "power_watts": log.get("power_watts"),
+                "recorded_at": log.get("recorded_at", ""),
+            } for log in logs],
         }
 
     elif name == "control_room_devices":
@@ -167,192 +123,118 @@ async def _execute_function(
             action = "turn_off"
         dtype = args.get("device_type")
 
-        # Robust room resolution: UUID, Slug, Exact Name, or Fuzzy Match
+        # Resolve room
         room = None
-        try:
-            r_uuid = uuid.UUID(str(raw_room).strip())
-            r_res = await db.execute(select(Room).where(Room.id == r_uuid))
-            room = r_res.scalar_one_or_none()
-        except (ValueError, TypeError, AttributeError):
-            pass
-
-        if not room and room_slug:
-            result = await db.execute(select(Room).where(Room.slug == room_slug))
-            room = result.scalar_one_or_none()
-
+        # Try slug
+        if room_slug:
+            resp = supabase_service.client.table("rooms").select("*").eq("slug", room_slug).execute()
+            if resp.data:
+                room = resp.data[0]
+        # Try name (case-insensitive)
         if not room:
-            result = await db.execute(select(Room).where(func.lower(Room.name) == str(raw_room).lower().strip()))
-            room = result.scalar_one_or_none()
-
-        if not room:
-            clean_r = str(raw_room).lower().replace("-", " ").replace("_", " ").strip()
-            all_rooms = (await db.execute(select(Room))).scalars().all()
-            for r in all_rooms:
-                if clean_r in r.name.lower() or clean_r in r.slug.lower() or r.slug.lower().replace("-", " ") in clean_r:
-                    room = r
-                    break
-
+            resp = supabase_service.client.table("rooms").select("*").ilike("name", str(raw_room).strip()).execute()
+            if resp.data:
+                room = resp.data[0]
         if not room:
             return {"success": False, "error": f"Room '{raw_room}' not found"}
 
-        # Get devices in that room
-        query = select(Device).where(Device.room_id == room.id)
+        # Get devices in room
+        devices = await supabase_service.get_devices_by_room(room["id"])
         if dtype:
-            query = query.where(Device.device_type == dtype)
-        device_result = await db.execute(query)
-        devices = list(device_result.scalars().all())
-
+            devices = [d for d in devices if d.get("device_type") == dtype]
         if not devices:
-            return {"success": False, "error": f"No devices found in room '{room.name}'"}
+            return {"success": False, "error": f"No devices found in room '{room.get('name')}'"}
 
         results = []
-        affected_devices = []
-        for device in devices:
-            cmd_result = await device_manager.send_command(
-                db=db,
-                device_id=device.device_id,
-                action=action,
-                source="ai",
-            )
-            results.append(cmd_result)
-            affected_devices.append(device.device_id)
+        affected = []
+        for d in devices:
+            cmd = await device_manager.send_command(device_id=d["device_id"], action=action, source="ai")
+            results.append(cmd)
+            affected.append(d["device_id"])
 
-        success_count = sum(1 for r in results if r.get("success"))
+        ok = sum(1 for r in results if r.get("success"))
         return {
-            "success": success_count > 0,
-            "room": room.name,
+            "success": ok > 0,
+            "room": room.get("name"),
             "action": action,
             "total_devices": len(devices),
-            "success_count": success_count,
-            "devices": affected_devices,
+            "success_count": ok,
+            "devices": affected,
         }
 
     return {"error": f"Unknown function: {name}"}
 
 
+def _gen_id() -> str:
+    return str(uuid.uuid4()).replace("-", "")
+
+
 @router.post("/message", response_model=AIChatResponse)
 async def send_chat_message(
     body: AIChatRequest,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(get_current_user),
+    db=Depends(get_db),
 ):
-    """
-    Send a natural language message to the AI assistant.
+    """Send a natural language message to the AI assistant."""
+    user_id = str(user["id"])
+    now = datetime.now(timezone.utc).isoformat()
 
-    The AI uses Gemini Function Calling to interpret the message and
-    execute IoT commands if needed.
-    """
-    # Get or create a chat session
-    # Handle user as dict (from Supabase) or object (from SQLAlchemy)
-    if isinstance(user, dict):
-        user_id = uuid.UUID(user["id"]) if isinstance(user["id"], str) else user["id"]
-    else:
-        user_id = user.id
-    
+    # Get or create chat session
     if body.session_id:
-        result = await db.execute(
-            select(ChatSession).where(
-                ChatSession.id == body.session_id,
-                ChatSession.user_id == user_id,
-            )
-        )
-        session = result.scalar_one_or_none()
+        session = await supabase_service.get_chat_session(str(body.session_id), user_id)
         if not session:
             raise NotFoundError("ChatSession", str(body.session_id))
     else:
-        session = ChatSession(
-            user_id=user_id,
-            title=body.message[:50] + ("..." if len(body.message) > 50 else ""),
-        )
-        db.add(session)
-        await db.flush()
-        await db.refresh(session)
-        
-        # Sync to Supabase - TEMPORARILY DISABLED FOR DEBUG
-        # try:
-        #     await supabase_service.create_chat_session({
-        #         "id": str(session.id),
-        #         "user_id": str(session.user_id),
-        #         "title": session.title,
-        #         "created_at": session.created_at.isoformat() if session.created_at else None,
-        #     })
-        # except Exception as e:
-        #     logger.warning("supabase_sync_failed", error=str(e))
-        #     pass
+        session_id = _gen_id()
+        session = await supabase_service.create_chat_session({
+            "id": session_id,
+            "user_id": user_id,
+            "title": body.message[:50] + ("..." if len(body.message) > 50 else ""),
+            "is_active": True,
+            "created_at": now,
+            "updated_at": now,
+        })
+
+    sid = session["id"]
 
     # Save user message
-    user_msg = ChatMessage(
-        session_id=session.id,
-        role="user",
-        content=body.message,
-    )
-    db.add(user_msg)
-    await db.flush()
-    await db.refresh(user_msg)
-    
-    # Sync to Supabase - TEMPORARILY DISABLED FOR DEBUG
-    # try:
-    #     await supabase_service.create_chat_message({
-    #         "id": str(user_msg.id),
-    #         "session_id": str(user_msg.session_id),
-    #         "role": user_msg.role,
-    #         "content": user_msg.content,
-    #         "created_at": user_msg.created_at.isoformat() if user_msg.created_at else None,
-    #     })
-    # except Exception:
-    #     pass
+    await supabase_service.create_chat_message({
+        "id": _gen_id(),
+        "session_id": sid,
+        "role": "user",
+        "content": body.message,
+        "created_at": now,
+    })
 
-    # Create function executor bound to this db session
+    # Function executor
     async def executor(name: str, args: dict) -> dict:
-        return await _execute_function(name, args, db)
+        return await _execute_function(name, args)
 
-    # Build contextual prompt if room is known
-    prompt_to_ai = (
+    # Contextual prompt
+    prompt = (
         f"[Konteks Ruangan: User sedang membuka ruangan '{body.room_context}']\n{body.message}"
-        if body.room_context
-        else body.message
+        if body.room_context else body.message
     )
 
     # Process through Gemini
     ai_result = await gemini_service.chat(
-        message=prompt_to_ai,
-        session_id=str(session.id),
-        function_executor=executor,
+        message=prompt, session_id=sid, function_executor=executor,
     )
 
     # Save assistant message
-    import json
-    assistant_msg = ChatMessage(
-        session_id=session.id,
-        role="assistant",
-        content=ai_result["reply"],
-        function_call=ai_result.get("function_called"),
-        function_response=json.dumps(ai_result.get("function_result")) if ai_result.get("function_result") else None,
-    )
-    db.add(assistant_msg)
-    await db.flush()
-    await db.refresh(assistant_msg)
-    
-    # Sync to Supabase - TEMPORARILY DISABLED FOR DEBUG
-    # try:
-    #     await supabase_service.create_chat_message({
-    #         "id": str(assistant_msg.id),
-    #         "session_id": str(assistant_msg.session_id),
-    #         "role": assistant_msg.role,
-    #         "content": assistant_msg.content,
-    #         "function_call": assistant_msg.function_call,
-    #         "function_response": assistant_msg.function_response,
-    #         "created_at": assistant_msg.created_at.isoformat() if assistant_msg.created_at else None,
-    #     })
-    # except Exception:
-    #     pass
+    await supabase_service.create_chat_message({
+        "id": _gen_id(),
+        "session_id": sid,
+        "role": "assistant",
+        "content": ai_result["reply"],
+        "function_call": ai_result.get("function_called"),
+        "function_response": json.dumps(ai_result.get("function_result")) if ai_result.get("function_result") else None,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
 
-    # Debug: Print before return
-    logger.info("chat_response_prep", session_type=str(type(session)), has_id=hasattr(session, 'id'))
-    
     return AIChatResponse(
         reply=ai_result["reply"],
-        session_id=str(session.id),
+        session_id=sid,
         function_called=ai_result.get("function_called"),
         function_result=ai_result.get("function_result"),
         devices_affected=ai_result.get("devices_affected", []),
@@ -365,115 +247,64 @@ async def send_chat_message(
 async def list_sessions(
     page: int = Query(1, ge=1),
     page_size: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(get_current_user),
+    db=Depends(get_db),
 ):
     """List all chat sessions for the current user."""
-    base_query = select(ChatSession).where(ChatSession.user_id == user.id)
-
-    count_result = await db.execute(
-        select(func.count()).select_from(base_query.subquery())
+    offset = (page - 1) * page_size
+    sessions, total = await supabase_service.get_chat_sessions(
+        str(user["id"]), limit=page_size, offset=offset,
     )
-    total = count_result.scalar_one()
-
-    result = await db.execute(
-        base_query
-        .order_by(ChatSession.updated_at.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-    )
-    sessions = list(result.scalars().all())
-
     return PaginatedResponse.create(
-        items=[ChatSessionResponse.model_validate(s) for s in sessions],
-        total=total,
-        page=page,
-        page_size=page_size,
+        items=[ChatSessionResponse(**s) for s in sessions],
+        total=total, page=page, page_size=page_size,
     )
 
 
 @router.post("/sessions", response_model=ChatSessionResponse, status_code=201)
 async def create_session(
     body: ChatSessionCreate,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(get_current_user),
+    db=Depends(get_db),
 ):
     """Create a new chat session."""
-    session = ChatSession(
-        user_id=user.id,
-        title=body.title,
-    )
-    db.add(session)
-    await db.flush()
-    await db.refresh(session)
-    
-    # Sync to Supabase
-    try:
-        await supabase_service.create_chat_session({
-            "id": str(session.id),
-            "user_id": str(session.user_id),
-            "title": session.title,
-            "created_at": session.created_at.isoformat() if session.created_at else None,
-        })
-    except Exception:
-        pass
-    
+    now = datetime.now(timezone.utc).isoformat()
+    session = await supabase_service.create_chat_session({
+        "id": _gen_id(),
+        "user_id": str(user["id"]),
+        "title": body.title,
+        "is_active": True,
+        "created_at": now,
+        "updated_at": now,
+    })
     return session
 
 
 @router.get("/sessions/{session_id}/messages", response_model=list[ChatMessageResponse])
 async def get_session_messages(
-    session_id: uuid.UUID,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    session_id: str,
+    user: dict = Depends(get_current_user),
+    db=Depends(get_db),
 ):
     """Get all messages in a chat session."""
-    result = await db.execute(
-        select(ChatSession).where(
-            ChatSession.id == session_id,
-            ChatSession.user_id == user.id,
-        )
-    )
-    session = result.scalar_one_or_none()
+    session = await supabase_service.get_chat_session(session_id, str(user["id"]))
     if not session:
-        raise NotFoundError("ChatSession", str(session_id))
-
-    msg_result = await db.execute(
-        select(ChatMessage)
-        .where(ChatMessage.session_id == session_id)
-        .order_by(ChatMessage.created_at)
-    )
-    messages = list(msg_result.scalars().all())
-    return [ChatMessageResponse.model_validate(m) for m in messages]
+        raise NotFoundError("ChatSession", session_id)
+    messages = await supabase_service.get_chat_messages(session_id)
+    return [ChatMessageResponse(**m) for m in messages]
 
 
 @router.delete("/sessions/{session_id}", response_model=SuccessResponse)
 async def delete_session(
-    session_id: uuid.UUID,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    session_id: str,
+    user: dict = Depends(get_current_user),
+    db=Depends(get_db),
 ):
     """Delete a chat session and all its messages."""
-    result = await db.execute(
-        select(ChatSession).where(
-            ChatSession.id == session_id,
-            ChatSession.user_id == user.id,
-        )
-    )
-    session = result.scalar_one_or_none()
+    session = await supabase_service.get_chat_session(session_id, str(user["id"]))
     if not session:
-        raise NotFoundError("ChatSession", str(session_id))
+        raise NotFoundError("ChatSession", session_id)
 
-    # Clear Gemini's in-memory history
-    gemini_service.clear_session(str(session_id))
-
-    await db.delete(session)
-    await db.flush()
-    
-    # Sync to Supabase
-    try:
-        await supabase_service.delete_chat_session(str(session_id))
-    except Exception:
-        pass
-    
+    gemini_service.clear_session(session_id)
+    await supabase_service.delete_chat_session(session_id)
     return SuccessResponse(message="Chat session deleted successfully")

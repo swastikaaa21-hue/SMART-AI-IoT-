@@ -1,28 +1,19 @@
 """
-Device manager service.
+Device manager service — Supabase primary.
 
 Central business logic for device state management. Bridges API requests,
-MQTT commands, database persistence, and WebSocket notifications.
+MQTT commands, Supabase persistence, and WebSocket notifications.
 """
 
 from __future__ import annotations
 
-import re
 import time
 import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import select, func, update
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
-
 from app.core.constants import CommandAction, DeviceState
 from app.core.logging import get_logger
-from app.models.command import CommandLog
-from app.models.device import Device
-from app.models.room import Room
-from app.models.telemetry import TelemetryLog
 from app.services.mqtt_service import mqtt_service
 from app.services.websocket_manager import ws_manager
 from app.services.supabase_service import supabase_service
@@ -31,244 +22,114 @@ logger = get_logger("device_manager")
 
 
 class DeviceManager:
-    """Handles all device-related business logic."""
+    """Handles all device-related business logic via Supabase."""
 
     # ── Device CRUD ──────────────────────────────────────────
 
     async def list_devices(
         self,
-        db: AsyncSession,
-        room_id: uuid.UUID | None = None,
+        room_id: str | None = None,
         device_type: str | None = None,
         is_online: bool | None = None,
         page: int = 1,
         page_size: int = 20,
-    ) -> tuple[list[Device], int]:
+    ) -> tuple[list[dict], int]:
         """List devices with optional filters and pagination."""
-        query = select(Device).options(selectinload(Device.room))
-
-        if room_id:
-            query = query.where(Device.room_id == room_id)
-        if device_type:
-            query = query.where(Device.device_type == device_type)
-        if is_online is not None:
-            query = query.where(Device.is_online == is_online)
-
-        # Count
-        count_query = select(func.count()).select_from(query.subquery())
-        total = (await db.execute(count_query)).scalar_one()
-
-        # Paginate
-        query = query.offset((page - 1) * page_size).limit(page_size)
-        result = await db.execute(query)
-        devices = list(result.scalars().all())
-
-        return devices, total
-
-    async def get_device(self, db: AsyncSession, device_id: str) -> Device | None:
-        """Get a single device by its device_id string or matching name/alias."""
-        if not device_id:
-            return None
-
-        # 1. Exact device_id match
-        result = await db.execute(
-            select(Device)
-            .where(Device.device_id == device_id)
-            .options(selectinload(Device.room))
+        all_devs = await supabase_service.get_all_devices(
+            room_id=room_id, device_type=device_type, is_online=is_online
         )
-        dev = result.scalar_one_or_none()
+        total = len(all_devs)
+        start = (page - 1) * page_size
+        end = start + page_size
+        # Enrich with room info
+        rooms_cache: dict[str, dict] = {}
+        for d in all_devs:
+            rid = d.get("room_id", "")
+            if rid and rid not in rooms_cache:
+                rooms_cache[rid] = await supabase_service.get_room_by_id(rid) or {}
+            d["room"] = rooms_cache.get(rid, {})
+        return all_devs[start:end], total
+
+    async def get_device(self, device_id: str) -> dict | None:
+        """Get a single device by device_id string or fuzzy match."""
+        dev = await supabase_service.resolve_device(device_id)
+        if dev and "room" not in dev:
+            room = await supabase_service.get_room_by_id(dev.get("room_id", ""))
+            dev["room"] = room or {}
+        return dev
+
+    async def get_device_by_uuid(self, device_uuid: str) -> dict | None:
+        dev = await supabase_service.get_device_by_uuid(device_uuid)
         if dev:
-            return dev
+            room = await supabase_service.get_room_by_id(dev.get("room_id", ""))
+            dev["room"] = room or {}
+        return dev
 
-        # 2. Case-insensitive device_id match
-        result = await db.execute(
-            select(Device)
-            .where(func.lower(Device.device_id) == device_id.lower())
-            .options(selectinload(Device.room))
-        )
-        dev = result.scalar_one_or_none()
-        if dev:
-            return dev
-
-        # 3. Fallback: match by exact name or slugified name
-        clean_name = device_id.lower().replace("-", " ").replace("_", " ").strip()
-        result = await db.execute(
-            select(Device)
-            .where(func.lower(Device.name) == clean_name)
-            .options(selectinload(Device.room))
-        )
-        dev = result.scalar_one_or_none()
-        if dev:
-            return dev
-
-        # 4. Smart fuzzy match against all devices
-        all_res = await db.execute(
-            select(Device).options(selectinload(Device.room))
-        )
-        all_devices = list(all_res.scalars().all())
-
-        # Substring / partial name match
-        for d in all_devices:
-            d_name = d.name.lower()
-            if clean_name in d_name or d_name in clean_name:
-                return d
-
-        # Semantic keywords mapping (Room + Device Type)
-        term_map = {
-            "light": "light", "lampu": "light", "lamp": "light", "penerangan": "light",
-            "ac": "ac", "aircond": "ac", "aircon": "ac", "cooler": "ac", "pendingin": "ac",
-            "tv": "tv", "television": "tv", "televisi": "tv",
-            "fan": "fan", "kipas": "fan", "exhaust": "fan",
-            "curtain": "curtain", "tirai": "curtain", "gorden": "curtain",
-            "speaker": "speaker", "soundbar": "speaker", "audio": "speaker",
-            "projector": "projector", "proyektor": "projector",
-            "kamar": "kamar", "bedroom": "kamar", "bed": "kamar", "tidur": "kamar",
-            "tamu": "ruang-tamu", "living": "ruang-tamu", "keluarga": "ruang-tamu",
-            "dapur": "dapur", "kitchen": "dapur",
-            "rapat": "ruang-rapat", "meeting": "ruang-rapat", "office": "ruang-rapat", "kerja": "ruang-rapat",
+    async def create_device(self, **kwargs: Any) -> dict:
+        dev_id = str(uuid.uuid4()).replace("-", "")
+        now = datetime.now(timezone.utc).isoformat()
+        device_data = {
+            "id": dev_id,
+            "device_id": kwargs["device_id"],
+            "name": kwargs["name"],
+            "device_type": kwargs["device_type"],
+            "room_id": str(kwargs["room_id"]) if kwargs.get("room_id") else None,
+            "state": kwargs.get("state", "off"),
+            "brightness": kwargs.get("brightness"),
+            "temperature": kwargs.get("temperature"),
+            "humidity": kwargs.get("humidity"),
+            "is_online": kwargs.get("is_online", False),
+            "firmware_version": kwargs.get("firmware_version"),
+            "description": kwargs.get("description"),
+            "extra_metadata": kwargs.get("extra_metadata", {}),
+            "created_at": now,
+            "updated_at": now,
         }
+        result = await supabase_service.create_device(device_data)
+        logger.info("device_created", device_id=kwargs["device_id"], name=kwargs["name"])
+        # Attach room
+        if result.get("room_id"):
+            result["room"] = await supabase_service.get_room_by_id(result["room_id"]) or {}
+        return result
 
-        tokens = set(re.findall(r"[a-zA-Z0-9]+", device_id.lower()))
-        mapped_types = set()
-        mapped_rooms = set()
-        for t in tokens:
-            if t in term_map:
-                val = term_map[t]
-                if val in ["light", "ac", "tv", "fan", "curtain", "speaker", "projector"]:
-                    mapped_types.add(val)
-                else:
-                    mapped_rooms.add(val)
-
-        # Match both room and device type
-        if mapped_types and mapped_rooms:
-            for d in all_devices:
-                r_slug = d.room.slug.replace("_", "-") if d.room else ""
-                if d.device_type in mapped_types and r_slug in mapped_rooms:
-                    return d
-
-        # Match device type if only 1 matching device
-        if mapped_types:
-            matching = [d for d in all_devices if d.device_type in mapped_types]
-            if len(matching) == 1:
-                return matching[0]
-
-        return None
-
-    async def get_device_by_uuid(self, db: AsyncSession, device_uuid: uuid.UUID) -> Device | None:
-        """Get a single device by its UUID primary key."""
-        result = await db.execute(
-            select(Device)
-            .where(Device.id == device_uuid)
-            .options(selectinload(Device.room))
-        )
-        return result.scalar_one_or_none()
-
-    async def create_device(self, db: AsyncSession, **kwargs: Any) -> Device:
-        """Create a new device record."""
-        device = Device(**kwargs)
-        db.add(device)
-        await db.flush()
-        await db.refresh(device, attribute_names=["room"])
-        logger.info("device_created", device_id=device.device_id, name=device.name)
-        
-        # Sync to Supabase
-        try:
-            await supabase_service.create_device({
-                "id": str(device.id),
-                "device_id": device.device_id,
-                "name": device.name,
-                "device_type": device.device_type,
-                "room_id": str(device.room_id) if device.room_id else None,
-                "owner_id": str(device.owner_id) if device.owner_id else None,
-                "state": device.state,
-                "is_online": device.is_online,
-                "firmware_version": device.firmware_version,
-                "description": device.description,
-                "extra_metadata": device.extra_metadata,
-                "created_at": device.created_at.isoformat() if device.created_at else None,
-                "updated_at": device.updated_at.isoformat() if device.updated_at else None,
-            })
-        except Exception:
-            pass
-        
-        return device
-
-    async def update_device(
-        self,
-        db: AsyncSession,
-        device_id: str,
-        **kwargs: Any,
-    ) -> Device | None:
-        """Update device attributes."""
-        device = await self.get_device(db, device_id)
+    async def update_device(self, device_id: str, **kwargs: Any) -> dict | None:
+        device = await supabase_service.resolve_device(device_id)
         if not device:
             return None
-
-        for key, value in kwargs.items():
-            if value is not None and hasattr(device, key):
-                setattr(device, key, value)
-
-        device.updated_at = datetime.now(timezone.utc)
-        await db.flush()
-        await db.refresh(device)
+        updates = {k: v for k, v in kwargs.items() if v is not None}
+        if not updates:
+            return device
+        result = await supabase_service.update_device_by_device_id(device["device_id"], updates)
         logger.info("device_updated", device_id=device_id)
-        
-        # Sync to Supabase
-        try:
-            updates = {k: v for k, v in kwargs.items() if v is not None}
-            if updates:
-                await supabase_service.update_device(str(device.id), updates)
-        except Exception:
-            pass
-        
-        return device
+        if result.get("room_id"):
+            result["room"] = await supabase_service.get_room_by_id(result["room_id"]) or {}
+        return result
 
-    async def delete_device(self, db: AsyncSession, device_id: str) -> bool:
-        """Delete a device by its device_id string."""
-        device = await self.get_device(db, device_id)
+    async def delete_device(self, device_id: str) -> bool:
+        device = await supabase_service.resolve_device(device_id)
         if not device:
             return False
-        
-        device_uuid = device.id
-        await db.delete(device)
-        await db.flush()
-        logger.info("device_deleted", device_id=device_id)
-        
-        # Sync to Supabase
-        try:
-            await supabase_service.delete_device(str(device_uuid))
-        except Exception:
-            pass
-        
-        return True
+        ok = await supabase_service.delete_device(device["device_id"])
+        if ok:
+            logger.info("device_deleted", device_id=device_id)
+        return ok
 
     # ── Device Commands ──────────────────────────────────────
 
     async def send_command(
         self,
-        db: AsyncSession,
         device_id: str,
         action: str,
         value: int | float | str | None = None,
         source: str = "api",
     ) -> dict[str, Any]:
-        """
-        Send a command to a device via MQTT and log it.
-
-        Returns a dict with command result information.
-        """
-        device = await self.get_device(db, device_id)
+        device = await self.get_device(device_id)
         if not device:
-            return {
-                "success": False,
-                "error": f"Device '{device_id}' not found",
-            }
+            return {"success": False, "error": f"Device '{device_id}' not found"}
 
-        if not device.room:
-            return {
-                "success": False,
-                "error": f"Device '{device_id}' has no associated room",
-            }
+        room = device.get("room", {})
+        if not room:
+            return {"success": False, "error": f"Device '{device_id}' has no associated room"}
 
         # Determine target state
         if action == CommandAction.TURN_ON.value:
@@ -278,37 +139,34 @@ class DeviceManager:
         elif action == CommandAction.TOGGLE.value:
             target_state = (
                 DeviceState.OFF.value
-                if device.state == DeviceState.ON.value
+                if device.get("state") == DeviceState.ON.value
                 else DeviceState.ON.value
             )
         elif action == CommandAction.SET_VALUE.value:
-            target_state = device.state  # State unchanged, value is set
+            target_state = device.get("state", "off")
         elif action == CommandAction.GET_STATUS.value:
             return {
                 "success": True,
                 "device_id": device_id,
-                "state": device.state,
-                "is_online": device.is_online,
-                "last_seen_at": str(device.last_seen_at) if device.last_seen_at else None,
+                "state": device.get("state"),
+                "is_online": device.get("is_online"),
+                "last_seen_at": device.get("last_seen_at"),
             }
         else:
             return {"success": False, "error": f"Unknown action: {action}"}
 
-        # Build extra payload
         extra: dict[str, Any] = {}
-        if value is not None:
-            if action == CommandAction.SET_VALUE.value:
-                extra["value"] = value
+        if value is not None and action == CommandAction.SET_VALUE.value:
+            extra["value"] = value
 
         # Publish via MQTT
         published = await mqtt_service.publish_command(
-            room_slug=device.room.slug,
-            device_id=device.device_id,
+            room_slug=room.get("slug", "unknown"),
+            device_id=device["device_id"],
             state=target_state,
             extra_payload=extra if extra else None,
         )
 
-        # Build command log
         payload_sent = {"state": target_state, "timestamp": int(time.time())}
         if extra:
             payload_sent.update(extra)
@@ -316,239 +174,159 @@ class DeviceManager:
         status = "sent" if published else "failed"
         error_msg = None if published else "MQTT publish failed"
 
-        command_log = CommandLog(
-            device_id=device.device_id,
-            action=action,
-            payload=payload_sent,
-            source=source,
-            status=status,
-            error_message=error_msg,
-        )
-        db.add(command_log)
-        await db.flush()
-        await db.refresh(command_log)
-        
-        # Sync to Supabase
+        # Log command to Supabase
+        cmd_id = str(uuid.uuid4()).replace("-", "")
+        now = datetime.now(timezone.utc).isoformat()
         try:
             await supabase_service.log_command({
-                "id": str(command_log.id),
-                "device_id": device.device_id,
+                "id": cmd_id,
+                "device_id": device["device_id"],
                 "action": action,
                 "payload": payload_sent,
                 "source": source,
                 "status": status,
                 "error_message": error_msg,
-                "timestamp": command_log.timestamp.isoformat() if command_log.timestamp else None,
+                "executed_at": now,
             })
         except Exception:
             pass
 
-        # Update DB state optimistically
-        device.state = target_state
+        # Update device state in Supabase
+        dev_updates: dict[str, Any] = {"state": target_state}
         if action == CommandAction.SET_VALUE.value and value is not None:
             try:
                 num_val = float(value)
-                if device.device_type == "ac":
-                    device.temperature = num_val
-                elif device.device_type == "light":
-                    device.brightness = int(num_val)
+                if device.get("device_type") == "ac":
+                    dev_updates["temperature"] = num_val
+                elif device.get("device_type") == "light":
+                    dev_updates["brightness"] = int(num_val)
             except (ValueError, TypeError):
                 pass
-        device.updated_at = datetime.now(timezone.utc)
-        await db.flush()
-
-        # Broadcast update to connected frontend WebSockets
         try:
-            room_slug = device.room.slug if device.room else "unknown"
+            await supabase_service.update_device_by_device_id(device["device_id"], dev_updates)
+        except Exception:
+            pass
+
+        # Broadcast via WebSocket
+        try:
+            room_slug = room.get("slug", "unknown")
             extra_ws: dict[str, Any] = {}
-            if device.brightness is not None:
-                extra_ws["brightness"] = device.brightness
-            if device.temperature is not None:
-                extra_ws["temperature"] = device.temperature
+            if device.get("brightness") is not None:
+                extra_ws["brightness"] = device["brightness"]
+            if device.get("temperature") is not None:
+                extra_ws["temperature"] = device["temperature"]
             await ws_manager.broadcast_device_status(
-                device_id=device.device_id,
+                device_id=device["device_id"],
                 room_slug=room_slug,
-                state=device.state,
+                state=target_state,
                 extra=extra_ws if extra_ws else None,
             )
         except Exception:
             pass
 
-        logger.info(
-            "device_command_sent",
-            device_id=device.device_id,
-            action=action,
-            target_state=target_state,
-            published=published,
-        )
+        logger.info("device_command_sent", device_id=device["device_id"],
+                    action=action, target_state=target_state, published=published)
 
         return {
             "success": True,
-            "device_id": device.device_id,
+            "device_id": device["device_id"],
             "action": action,
             "payload_sent": payload_sent,
             "status": status,
-            "message": f"Command '{action}' sent to {device.name}",
+            "message": f"Command '{action}' sent to {device.get('name', device_id)}",
         }
 
     # ── Status Update (from MQTT) ────────────────────────────
 
     async def handle_status_update(
-        self,
-        db: AsyncSession,
-        device_id: str,
-        state: str,
-        extra: dict[str, Any] | None = None,
+        self, device_id: str, state: str, extra: dict[str, Any] | None = None,
     ) -> None:
-        """
-        Process a device status update received from MQTT.
-
-        Updates the device record and broadcasts via WebSocket.
-        """
-        device = await self.get_device(db, device_id)
+        device = await supabase_service.get_device_by_device_id(device_id)
         if not device:
             logger.warning("status_update_unknown_device", device_id=device_id)
             return
 
-        device.state = state
-        device.is_online = True
-        device.last_seen_at = datetime.now(timezone.utc)
-
+        updates: dict[str, Any] = {
+            "state": state,
+            "is_online": True,
+            "last_seen_at": datetime.now(timezone.utc).isoformat(),
+        }
         if extra:
-            if "brightness" in extra:
-                device.brightness = extra["brightness"]
-            if "temperature" in extra:
-                device.temperature = extra["temperature"]
-            if "humidity" in extra:
-                device.humidity = extra["humidity"]
+            for key in ("brightness", "temperature", "humidity"):
+                if key in extra:
+                    updates[key] = extra[key]
 
-        device.updated_at = datetime.now(timezone.utc)
-        await db.flush()
+        await supabase_service.update_device_by_device_id(device_id, updates)
 
-        # Broadcast to frontend via WebSocket
-        room_slug = device.room.slug if device.room else "unknown"
+        room = await supabase_service.get_room_by_id(device.get("room_id", ""))
+        room_slug = room.get("slug", "unknown") if room else "unknown"
         await ws_manager.broadcast_device_status(
-            device_id=device_id,
-            room_slug=room_slug,
-            state=state,
-            extra=extra,
-        )
-
-        logger.info(
-            "device_status_updated",
-            device_id=device_id,
-            state=state,
+            device_id=device_id, room_slug=room_slug, state=state, extra=extra
         )
 
     # ── Telemetry ────────────────────────────────────────────
 
     async def save_telemetry(
         self,
-        db: AsyncSession,
         device_id: str,
         temperature: float | None = None,
         humidity: float | None = None,
         power_watts: float | None = None,
         extra_data: dict | None = None,
-    ) -> TelemetryLog:
-        """Persist a telemetry reading and broadcast via WebSocket."""
-        log = TelemetryLog(
-            device_id=device_id,
-            temperature=temperature,
-            humidity=humidity,
-            power_watts=power_watts,
-            extra_data=extra_data,
-        )
-        db.add(log)
-        await db.flush()
-        await db.refresh(log)
+    ) -> dict:
+        tel_id = str(uuid.uuid4()).replace("-", "")
+        now = datetime.now(timezone.utc).isoformat()
 
-        # Update device's sensor fields
-        stmt = (
-            update(Device)
-            .where(Device.device_id == device_id)
-            .values(
-                temperature=temperature,
-                humidity=humidity,
-                is_online=True,
-                last_seen_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
-            )
-        )
-        await db.execute(stmt)
+        log = await supabase_service.log_telemetry({
+            "id": tel_id,
+            "device_id": device_id,
+            "temperature": temperature,
+            "humidity": humidity,
+            "power_watts": power_watts,
+            "extra_data": extra_data,
+            "recorded_at": now,
+        })
 
-        # Sync to Supabase
+        # Update device sensor fields
         try:
-            await supabase_service.log_telemetry({
-                "id": str(log.id),
-                "device_id": device_id,
+            await supabase_service.update_device_by_device_id(device_id, {
                 "temperature": temperature,
                 "humidity": humidity,
-                "power_watts": power_watts,
-                "extra_data": extra_data,
-                "timestamp": log.recorded_at.isoformat() if log.recorded_at else None,
+                "is_online": True,
+                "last_seen_at": now,
             })
         except Exception:
             pass
 
-        # Broadcast to frontend
+        # Broadcast
         await ws_manager.broadcast_telemetry(
             device_id=device_id,
             telemetry={
                 "temperature": temperature,
                 "humidity": humidity,
                 "power_watts": power_watts,
-                "recorded_at": log.recorded_at.isoformat(),
+                "recorded_at": now,
             },
         )
-
         return log
 
     async def get_telemetry(
         self,
-        db: AsyncSession,
         device_id: str | None = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> tuple[list[TelemetryLog], int]:
-        """Query telemetry logs with optional device filter."""
-        query = select(TelemetryLog).order_by(TelemetryLog.recorded_at.desc())
-
-        if device_id:
-            query = query.where(TelemetryLog.device_id == device_id)
-
-        count_query = select(func.count()).select_from(query.subquery())
-        total = (await db.execute(count_query)).scalar_one()
-
-        query = query.offset(offset).limit(limit)
-        result = await db.execute(query)
-        logs = list(result.scalars().all())
-
-        return logs, total
+    ) -> tuple[list[dict], int]:
+        return await supabase_service.get_telemetry(device_id=device_id, limit=limit, offset=offset)
 
     # ── Command Logs ─────────────────────────────────────────
 
     async def get_command_logs(
         self,
-        db: AsyncSession,
         device_id: str | None = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> tuple[list[CommandLog], int]:
-        """Query command logs with optional device filter."""
-        query = select(CommandLog).order_by(CommandLog.executed_at.desc())
-
-        if device_id:
-            query = query.where(CommandLog.device_id == device_id)
-
-        count_query = select(func.count()).select_from(query.subquery())
-        total = (await db.execute(count_query)).scalar_one()
-
-        query = query.offset(offset).limit(limit)
-        result = await db.execute(query)
-        logs = list(result.scalars().all())
-
-        return logs, total
+    ) -> tuple[list[dict], int]:
+        return await supabase_service.get_commands(device_id=device_id, limit=limit, offset=offset)
 
 
 # Module-level singleton
