@@ -215,10 +215,12 @@ class GeminiService:
 
         # List of models with automatic fallback if quota limit is hit
         self._fallback_models = [
-            settings.GEMINI_MODEL or "gemini-3.5-flash",
-            "gemini-3.5-flash-lite",
-            "gemini-3.6-flash",
-            "gemini-3.1-flash-lite",
+            settings.GEMINI_MODEL or "gemini-1.5-flash",
+            "gemini-1.5-flash",
+            "gemini-1.5-flash-8b",
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-lite",
+            "gemini-1.5-pro",
         ]
         # Deduplicate while preserving order
         self._fallback_models = list(dict.fromkeys(self._fallback_models))
