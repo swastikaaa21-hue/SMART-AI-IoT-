@@ -54,7 +54,7 @@ class AIChatRequest(BaseModel):
 class AIChatResponse(BaseModel):
     """Response from AI chat endpoint."""
     reply: str = Field(..., examples=["Baik, lampu utama di ruang tamu telah dinyalakan!"])
-    session_id: uuid.UUID
+    session_id: str
     function_called: str | None = Field(None, examples=["control_device"])
     function_result: dict | None = Field(None, examples=[{"success": True, "device_id": "esp32_light_01"}])
     devices_affected: list[str] = Field(default_factory=list, examples=[["esp32_light_01"]])

@@ -25,6 +25,7 @@ from app.models.room import Room
 from app.models.telemetry import TelemetryLog
 from app.services.mqtt_service import mqtt_service
 from app.services.websocket_manager import ws_manager
+from app.services.supabase_service import supabase_service
 
 logger = get_logger("device_manager")
 
@@ -169,6 +170,27 @@ class DeviceManager:
         await db.flush()
         await db.refresh(device, attribute_names=["room"])
         logger.info("device_created", device_id=device.device_id, name=device.name)
+        
+        # Sync to Supabase
+        try:
+            await supabase_service.create_device({
+                "id": str(device.id),
+                "device_id": device.device_id,
+                "name": device.name,
+                "device_type": device.device_type,
+                "room_id": str(device.room_id) if device.room_id else None,
+                "owner_id": str(device.owner_id) if device.owner_id else None,
+                "state": device.state,
+                "is_online": device.is_online,
+                "firmware_version": device.firmware_version,
+                "description": device.description,
+                "extra_metadata": device.extra_metadata,
+                "created_at": device.created_at.isoformat() if device.created_at else None,
+                "updated_at": device.updated_at.isoformat() if device.updated_at else None,
+            })
+        except Exception:
+            pass
+        
         return device
 
     async def update_device(
@@ -190,6 +212,15 @@ class DeviceManager:
         await db.flush()
         await db.refresh(device)
         logger.info("device_updated", device_id=device_id)
+        
+        # Sync to Supabase
+        try:
+            updates = {k: v for k, v in kwargs.items() if v is not None}
+            if updates:
+                await supabase_service.update_device(str(device.id), updates)
+        except Exception:
+            pass
+        
         return device
 
     async def delete_device(self, db: AsyncSession, device_id: str) -> bool:
@@ -197,9 +228,18 @@ class DeviceManager:
         device = await self.get_device(db, device_id)
         if not device:
             return False
+        
+        device_uuid = device.id
         await db.delete(device)
         await db.flush()
         logger.info("device_deleted", device_id=device_id)
+        
+        # Sync to Supabase
+        try:
+            await supabase_service.delete_device(str(device_uuid))
+        except Exception:
+            pass
+        
         return True
 
     # ── Device Commands ──────────────────────────────────────
@@ -286,6 +326,22 @@ class DeviceManager:
         )
         db.add(command_log)
         await db.flush()
+        await db.refresh(command_log)
+        
+        # Sync to Supabase
+        try:
+            await supabase_service.log_command({
+                "id": str(command_log.id),
+                "device_id": device.device_id,
+                "action": action,
+                "payload": payload_sent,
+                "source": source,
+                "status": status,
+                "error_message": error_msg,
+                "timestamp": command_log.timestamp.isoformat() if command_log.timestamp else None,
+            })
+        except Exception:
+            pass
 
         # Update DB state optimistically
         device.state = target_state
@@ -405,6 +461,7 @@ class DeviceManager:
         )
         db.add(log)
         await db.flush()
+        await db.refresh(log)
 
         # Update device's sensor fields
         stmt = (
@@ -419,6 +476,20 @@ class DeviceManager:
             )
         )
         await db.execute(stmt)
+
+        # Sync to Supabase
+        try:
+            await supabase_service.log_telemetry({
+                "id": str(log.id),
+                "device_id": device_id,
+                "temperature": temperature,
+                "humidity": humidity,
+                "power_watts": power_watts,
+                "extra_data": extra_data,
+                "timestamp": log.recorded_at.isoformat() if log.recorded_at else None,
+            })
+        except Exception:
+            pass
 
         # Broadcast to frontend
         await ws_manager.broadcast_telemetry(

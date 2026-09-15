@@ -58,6 +58,16 @@
             }
         }
 
+        @keyframes slideUpBottom {
+            from {
+                transform: translateY(100%);
+            }
+
+            to {
+                transform: translateY(0);
+            }
+        }
+
         /* Custom Toggle Switch styling - CSS Only Interactive */
         .toggle-checkbox {
             right: 1.5rem;
@@ -135,17 +145,17 @@
             <button onclick="navigate('home')" id="nav-home"
                 class="nav-btn flex flex-col md:flex-row items-center p-3 rounded-xl text-brand-blue bg-blue-50 transition-all">
                 <i class="fas fa-home text-xl md:w-8"></i>
-                <span class="text-xs md:text-base font-medium mt-1 md:mt-0">Home</span>
+                <span class="text-xs md:text-base font-medium mt-1 md:mt-0" data-i18n="nav_home">Beranda</span>
             </button>
             <button onclick="navigate('schedule')" id="nav-schedule"
                 class="nav-btn flex flex-col md:flex-row items-center p-3 rounded-xl text-gray-500 hover:text-brand-blue transition-all">
                 <i class="fas fa-clock text-xl md:w-8"></i>
-                <span class="text-xs md:text-base font-medium mt-1 md:mt-0">Schedule</span>
+                <span class="text-xs md:text-base font-medium mt-1 md:mt-0" data-i18n="nav_schedule">Jadwal</span>
             </button>
             <button onclick="navigate('settings')" id="nav-settings"
                 class="nav-btn flex flex-col md:flex-row items-center p-3 rounded-xl text-gray-500 hover:text-brand-blue transition-all">
                 <i class="fas fa-cog text-xl md:w-8"></i>
-                <span class="text-xs md:text-base font-medium mt-1 md:mt-0">Settings</span>
+                <span class="text-xs md:text-base font-medium mt-1 md:mt-0" data-i18n="nav_settings">Pengaturan</span>
             </button>
         </div>
     </nav>
@@ -154,11 +164,16 @@
     <main class="flex-1 h-full overflow-y-auto no-scrollbar relative">
 
         <!-- ================= PAGE: SPLASH ================= -->
-        <div id="page-splash" class="page flex flex-col items-center justify-center h-full p-6 text-center bg-white">
-            <div class="mb-12 flex flex-col items-center">
+        <div id="page-splash"
+            class="page flex flex-col items-center justify-center h-full p-6 text-center relative overflow-hidden bg-gradient-to-b from-sky-200 to-sky-300"
+            style="background-image: linear-gradient(rgba(224, 242, 254, 0.85), rgba(186, 230, 253, 0.85)), url('https://i.pinimg.com/736x/85/e1/d9/85e1d926bea7e80ed65d60c91b0c65c7.jpg'); background-size: 300px; background-repeat: repeat; background-position: center; background-attachment: fixed;">
+            <!-- Cloud overlay for faded effect -->
+            <div class="absolute inset-0 bg-gradient-to-b from-sky-100/40 to-sky-200/40"></div>
+
+            <div class="mb-12 flex flex-col items-center relative z-10">
                 <!-- SVG Logo based on Design -->
                 <div class="w-64 h-32 mb-2 relative">
-                    <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+                    <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full drop-shadow-lg">
                         <!-- Chimney -->
                         <rect x="65" y="20" width="10" height="25" fill="currentColor" class="text-brand-dark" />
                         <!-- Roof -->
@@ -179,16 +194,27 @@
                         HOUSE</p>
                 </div>
             </div>
-            <p class="text-gray-500 mb-12 font-medium">Your Home. Smarter. Safer.</p>
+            <p class="text-gray-600 mb-12 font-medium text-lg relative z-10" data-i18n="splash_subtitle">Rumah Anda.
+                Lebih Pintar. Lebih Aman.</p>
             <button onclick="navigate('login')"
-                class="bg-brand-blue text-white w-full max-w-sm py-4 rounded-2xl font-semibold text-lg shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-all transform hover:scale-105 active:scale-95">
-                GET STARTED
+                class="bg-brand-blue text-white w-full max-w-sm py-4 rounded-2xl font-semibold text-lg shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-all transform hover:scale-105 active:scale-95 relative z-10">
+                <span data-i18n="splash_btn">MULAI</span>
             </button>
         </div>
 
         <!-- ================= PAGE: LOGIN ================= -->
-        <div id="page-login" class="page hidden flex flex-col h-full p-6 bg-white justify-center items-center">
-            <div class="w-full max-w-md">
+        <div id="page-login"
+            class="page hidden flex flex-col h-full p-6 justify-center items-center relative overflow-hidden bg-sky-300"
+            style="background-image: linear-gradient(rgba(224, 242, 254, 0.85), rgba(186, 230, 253, 0.85)), url('https://i.pinimg.com/736x/85/e1/d9/85e1d926bea7e80ed65d60c91b0c65c7.jpg'); background-size: 300px; background-repeat: repeat; background-position: center; background-attachment: fixed;">
+            <!-- Cloud overlay for faded effect -->
+            <div class="absolute inset-0 bg-gradient-to-b from-sky-100/40 to-sky-200/40"></div>
+            <div class="absolute top-6 right-6 flex bg-gray-100 rounded-full p-1 shadow-sm z-20">
+                <button onclick="setLanguage('en')" id="lang-btn-en"
+                    class="px-3 py-1 text-xs font-bold rounded-full transition-colors text-gray-500 hover:text-gray-800">EN</button>
+                <button onclick="setLanguage('id')" id="lang-btn-id"
+                    class="px-3 py-1 text-xs font-bold rounded-full transition-colors bg-white text-brand-blue shadow-sm">ID</button>
+            </div>
+            <div class="w-full max-w-md relative z-10">
                 <!-- Small Logo -->
                 <div class="flex justify-center mb-12 mt-4">
                     <div class="text-center flex flex-col items-center">
@@ -217,40 +243,42 @@
                     </div>
                 </div>
 
-                <p class="text-center text-gray-500 mb-6">Select the home you want to control.</p>
+                <p class="text-center text-gray-500 mb-6" data-i18n="login_subtitle">Pilih rumah yang ingin Anda
+                    kontrol.</p>
 
                 <!-- Tabs -->
                 <div class="flex bg-gray-100 p-1 rounded-xl mb-6">
                     <button id="tab-house" onclick="switchLoginTab('house')"
-                        class="flex-1 py-2 text-sm font-semibold rounded-lg bg-white shadow-sm text-brand-blue transition-all">House
-                        Number</button>
+                        class="flex-1 py-2 text-sm font-semibold rounded-lg bg-white shadow-sm text-brand-blue transition-all"><span
+                            data-i18n="tab_house">ID Rumah</span></button>
                     <button id="tab-qr" onclick="switchLoginTab('qr')"
-                        class="flex-1 py-2 text-sm font-semibold rounded-lg text-gray-500 hover:text-gray-800 transition-all">Scan
-                        QR</button>
+                        class="flex-1 py-2 text-sm font-semibold rounded-lg text-gray-500 hover:text-gray-800 transition-all"><span
+                            data-i18n="tab_qr">Pindai QR</span></button>
                 </div>
 
                 <!-- Form House Number -->
                 <div id="form-house">
                     <div class="space-y-4">
                         <div>
-                            <input type="email" id="login-house-id" placeholder="Email Address"
+                            <input type="email" id="login-house-id" placeholder="Alamat Email"
+                                data-i18n-placeholder="email_placeholder"
                                 class="w-full px-4 py-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 placeholder-gray-400 transition-all">
                         </div>
                         <div>
-                            <input type="password" placeholder="Password"
+                            <input type="password" placeholder="Kata Sandi" data-i18n-placeholder="password_placeholder"
                                 class="w-full px-4 py-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 placeholder-gray-400 transition-all">
                         </div>
                     </div>
                     <button onclick="login()"
                         class="mt-8 bg-brand-dark text-white w-full py-4 rounded-2xl font-semibold shadow-lg hover:bg-gray-800 transition-all">
-                        Log in to your account
+                        <span data-i18n="login_btn">Masuk ke akun Anda</span>
                     </button>
 
                     <div class="mt-6 text-center">
-                        <p class="text-sm text-gray-500">Don't have a Smart Home Server?</p>
+                        <p class="text-sm text-gray-500" data-i18n="login_no_account">Belum punya Server Smart Home?</p>
                         <button onclick="navigate('register')"
                             class="mt-2 text-brand-blue font-semibold hover:underline transition-all">
-                            Setup & Create New Account
+                            <span data-i18n="login_setup_btn">Atur &amp; Buat Akun Baru</span>
                         </button>
                     </div>
                 </div>
@@ -265,17 +293,18 @@
                         <i class="fas fa-camera text-4xl text-gray-500 mb-2"></i>
                         <p class="text-white font-medium">Kamera On...</p>
                     </div>
-                    <p class="text-center mt-4 text-sm text-gray-500">Point the camera at the QR code</p>
+                    <p class="text-center mt-4 text-sm text-gray-500" data-i18n="qr_instruction">Arahkan kamera ke kode
+                        QR</p>
                     <button onclick="login()"
                         class="mt-4 bg-gray-200 text-gray-800 w-full py-3 rounded-xl font-medium hover:bg-gray-300 transition-all">
-                        Simulate Scan
+                        <span data-i18n="qr_simulate_btn">Simulasi Pemindaian</span>
                     </button>
 
                     <div class="mt-6 text-center">
-                        <p class="text-sm text-gray-500">Don't have a Smart Home QR?</p>
+                        <p class="text-sm text-gray-500" data-i18n="qr_no_account">Tidak punya QR Smart Home?</p>
                         <button onclick="navigate('register')"
                             class="mt-2 text-brand-blue font-semibold hover:underline transition-all">
-                            Setup & Create New Account
+                            <span data-i18n="login_setup_btn">Atur &amp; Buat Akun Baru</span>
                         </button>
                     </div>
                 </div>
@@ -284,422 +313,604 @@
 
         <!-- ================= PAGE: REGISTER ================= -->
         <div id="page-register"
-            class="page hidden flex flex-col h-full p-6 bg-white justify-center items-center overflow-y-auto">
-            <div class="w-full max-w-md my-auto">
+            class="page hidden flex flex-col h-full p-6 justify-center items-center overflow-y-auto relative bg-sky-300"
+            style="background-image: linear-gradient(rgba(224, 242, 254, 0.85), rgba(186, 230, 253, 0.85)), url('https://i.pinimg.com/736x/85/e1/d9/85e1d926bea7e80ed65d60c91b0c65c7.jpg'); background-size: 300px; background-repeat: repeat; background-position: center; background-attachment: fixed;">
+            <!-- Cloud overlay for faded effect -->
+            <div class="absolute inset-0 bg-gradient-to-b from-sky-100/40 to-sky-200/40"></div>
+            <div class="w-full max-w-md my-auto relative z-10">
                 <button onclick="navigate('login')"
                     class="text-gray-500 hover:text-brand-blue transition-colors mb-8 flex items-center gap-2 font-medium">
-                    <i class="fas fa-arrow-left"></i> Back to Login
+                    <i class="fas fa-arrow-left"></i> <span data-i18n="reg_back">Kembali ke Login</span>
                 </button>
 
-                <h2 class="text-3xl font-extrabold text-brand-dark mb-2">Server Setup</h2>
-                <p class="text-gray-500 mb-8">Register and configure your smart home into the system.</p>
+                <h2 class="text-3xl font-extrabold text-brand-dark mb-2" data-i18n="reg_title">Pengaturan Server</h2>
+                <p class="text-gray-500 mb-8" data-i18n="reg_subtitle">Daftar dan atur rumah pintar Anda ke dalam
+                    sistem.</p>
 
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Home Name</label>
-                        <input type="text" id="reg-home-name" placeholder="e.g., The Smiths Family"
+                        <label class="block text-sm font-semibold text-gray-700 mb-2" data-i18n="reg_home_name">Nama
+                            Rumah</label>
+                        <input type="text" id="reg-home-name" placeholder="mis., Keluarga Budi"
+                            data-i18n-placeholder="reg_home_name_ph"
                             class="w-full px-4 py-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 placeholder-gray-400 transition-all">
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
-                        <input type="email" id="reg-house-id" placeholder="e.g., you@example.com"
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Alamat Email</label>
+                        <input type="email" id="reg-house-id" placeholder="mis., anda@contoh.com"
+                            data-i18n-placeholder="reg_email_ph"
                             class="w-full px-4 py-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 placeholder-gray-400 transition-all">
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Location / City</label>
-                        <input type="text" id="reg-location" placeholder="e.g., South Jakarta"
+                        <label class="block text-sm font-semibold text-gray-700 mb-2" data-i18n="reg_location">Lokasi /
+                            Kota</label>
+                        <input type="text" id="reg-location" placeholder="mis., Jakarta Selatan"
+                            data-i18n-placeholder="reg_location_ph"
                             class="w-full px-4 py-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 placeholder-gray-400 transition-all">
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Admin Password</label>
-                        <input type="password" id="reg-password" placeholder="Min. 8 characters"
+                        <label class="block text-sm font-semibold text-gray-700 mb-2" data-i18n="reg_password">Kata
+                            Sandi Admin</label>
+                        <input type="password" id="reg-password" placeholder="Min. 8 karakter"
+                            data-i18n-placeholder="reg_password_ph"
                             class="w-full px-4 py-4 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 placeholder-gray-400 transition-all">
                     </div>
                 </div>
 
                 <button onclick="registerNewHome()"
                     class="mt-8 bg-brand-blue text-white w-full py-4 rounded-2xl font-semibold shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition-all">
-                    Save & Create Server
+                    <span data-i18n="reg_submit">Simpan &amp; Buat Server</span>
                 </button>
             </div>
         </div>
 
         <!-- ================= PAGE: HOME (DASHBOARD) ================= -->
-        <div id="page-home" class="page hidden p-6 pb-24 md:pb-6 max-w-7xl mx-auto">
-            <!-- Header: Profile (Left) | Smart House + Date (Center) | Notification (Right) -->
-            <header class="flex justify-between items-center mb-6 pt-4">
-                <div class="w-12 h-12 rounded-full overflow-hidden shadow-sm border-2 border-gray-100 flex-shrink-0 cursor-pointer hover:border-brand-blue transition-colors"
-                    onclick="navigate('settings')">
-                    <img src="https://ui-avatars.com/api/?name=Miko&background=fff&color=2563EB" alt="Profile"
-                        class="w-full h-full object-cover">
+        <div id="page-home" class="page hidden p-6 pb-24 md:pb-6 max-w-7xl mx-auto relative overflow-hidden bg-sky-300"
+            style="background-image: linear-gradient(rgba(224, 242, 254, 0.85), rgba(186, 230, 253, 0.85)), url('https://i.pinimg.com/736x/85/e1/d9/85e1d926bea7e80ed65d60c91b0c65c7.jpg'); background-size: 300px; background-repeat: repeat; background-position: center; background-attachment: fixed;">
+            <!-- Cloud overlay for faded effect -->
+            <div class="absolute inset-0 bg-gradient-to-b from-sky-100/40 to-sky-200/40"></div>
+            <div class="relative z-10">
+                <!-- Header: Profile (Left) | Smart House + Date (Center) | Notification (Right) -->
+                <header class="flex justify-between items-center mb-6 pt-4">
+                    <div class="w-12 h-12 rounded-full overflow-hidden shadow-sm border-2 border-gray-100 flex-shrink-0 cursor-pointer hover:border-brand-blue transition-colors"
+                        onclick="navigate('settings')">
+                        <img src="https://ui-avatars.com/api/?name=Miko&background=fff&color=2563EB" alt="Profile"
+                            class="w-full h-full object-cover">
+                    </div>
+
+                    <div class="flex flex-col items-center justify-center flex-1 px-2 text-center">
+                        <h2 class="text-brand-blue font-bold text-xl tracking-wide uppercase mb-0"
+                            data-i18n="home_title">BERANDA</h2>
+                    </div>
+
+                    <button
+                        class="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:text-brand-blue shadow-sm transition-colors relative flex-shrink-0">
+                        <i class="far fa-bell text-xl"></i>
+                        <span
+                            class="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
+                    </button>
+                </header>
+
+                <!-- Search Bar -->
+                <div class="relative w-full mb-6">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                        <i class="fas fa-search text-gray-400"></i>
+                    </div>
+                    <input type="text" id="dashboard-search" oninput="handleSearch()"
+                        placeholder="Cari ruangan atau perangkat..." data-i18n-placeholder="search_ph"
+                        class="w-full pl-11 pr-4 py-4 rounded-3xl bg-white border border-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 placeholder-gray-400 transition-all shadow-sm">
                 </div>
 
-                <div class="flex flex-col items-center justify-center flex-1 px-2 text-center">
-                    <h2 class="text-brand-blue font-bold text-xl tracking-wide uppercase mb-0">HOME</h2>
-                </div>
-
-                <button
-                    class="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:text-brand-blue shadow-sm transition-colors relative flex-shrink-0">
-                    <i class="far fa-bell text-xl"></i>
-                    <span
-                        class="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
-                </button>
-            </header>
-
-            <!-- Search Bar -->
-            <div class="relative w-full mb-6">
-                <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                    <i class="fas fa-search text-gray-400"></i>
-                </div>
-                <input type="text" id="dashboard-search" oninput="handleSearch()"
-                    placeholder="Search rooms or devices..."
-                    class="w-full pl-11 pr-4 py-4 rounded-3xl bg-white border border-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 placeholder-gray-400 transition-all shadow-sm">
-            </div>
-
-            <!-- Smart Home Illustration Banner -->
-            <div
-                class="w-full mb-8 rounded-3xl overflow-hidden shadow-sm border border-gray-100 bg-white flex items-center justify-center p-3 sm:p-5">
-                <img src="https://i.pinimg.com/1200x/c4/e7/a3/c4e7a3aa6e61b9059f682e392a8e84d1.jpg"
-                    onerror="this.src='https://placehold.co/900x450/eff6ff/2563EB?text=Smart+Home'"
-                    alt="Smart Home Illustration" class="w-full h-auto object-contain block">
-            </div>
-
-            <!-- Location & Temperature Widgets -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-                <div
-                    class="bg-gradient-to-br from-brand-blue to-blue-500 rounded-3xl p-5 flex items-center justify-between shadow-lg shadow-blue-500/30 text-white">
-                    <div class="flex items-center gap-4">
-                        <div
-                            class="w-12 h-12 bg-white/20 text-white rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                            <i class="fas fa-map-marker-alt text-xl"></i>
-                        </div>
-                        <div>
-                            <p class="text-blue-100 text-xs font-medium uppercase tracking-wider">Location</p>
-                            <p class="font-semibold text-lg" id="dashboard-location">Tembalang, Semarang</p>
+                <!-- Smart Home Illustration Carousel -->
+                <div class="w-full mb-8 rounded-3xl overflow-hidden shadow-sm border border-gray-100 bg-white relative"
+                    id="banner-carousel">
+                    <div class="relative w-full overflow-hidden" style="aspect-ratio: 16/9;">
+                        <div id="carousel-slides" class="flex transition-transform duration-500 ease-out"
+                            style="width: 100%;">
+                            <img src="https://i.pinimg.com/1200x/c4/e7/a3/c4e7a3aa6e61b9059f682e392a8e84d1.jpg"
+                                onerror="this.src='https://placehold.co/900x450/eff6ff/2563EB?text=Smart+Home'"
+                                alt="Smart Home Illustration" class="w-full h-full object-cover flex-shrink-0">
+                            <img src="https://i.pinimg.com/1200x/58/5e/6b/585e6b44184402766d7ead1457031f08.jpg"
+                                onerror="this.src='https://placehold.co/900x450/eff6ff/2563EB?text=Smart+Home+2'"
+                                alt="Smart Home Illustration 2" class="w-full h-full object-cover flex-shrink-0">
                         </div>
                     </div>
                 </div>
 
-                <div
-                    class="bg-gradient-to-br from-orange-400 to-amber-500 rounded-3xl p-5 flex items-center justify-between shadow-lg shadow-orange-500/30 text-white">
-                    <div class="flex items-center gap-4">
-                        <div
-                            class="w-12 h-12 bg-white/20 text-white rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                            <i class="fas fa-sun text-xl"></i>
-                        </div>
-                        <div>
-                            <p class="text-orange-100 text-xs font-medium uppercase tracking-wider">Weather</p>
-                            <p class="font-semibold text-lg">Sunny</p>
+                <!-- Location & Temperature Widgets -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                    <div class="bg-[#7fbbdd] rounded-3xl p-5 flex items-center justify-between shadow-sm text-white">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-12 h-12 bg-white/20 text-white rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                                <i class="fas fa-map-marker-alt text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-blue-100 text-xs font-medium uppercase tracking-wider"
+                                    data-i18n="weather_location">Lokasi</p>
+                                <p class="font-semibold text-lg" id="dashboard-location">Tembalang, Semarang</p>
+                            </div>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <p class="text-3xl font-bold">28°</p>
+
+                    <div class="bg-[#f58b05] rounded-3xl p-5 flex items-center justify-between shadow-sm text-white">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-12 h-12 bg-white/20 text-white rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                                <i class="fas fa-sun text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-orange-100 text-xs font-medium uppercase tracking-wider"
+                                    data-i18n="weather_title">Cuaca</p>
+                                <p class="font-semibold text-lg" data-i18n="weather_sunny">Cerah</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-3xl font-bold">28°</p>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Rooms Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6" id="rooms-grid"></div>
             </div>
 
-            <!-- Rooms Grid -->
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6" id="rooms-grid"></div>
         </div>
-
         <!-- ================= PAGE: SCHEDULE ================= -->
-        <div id="page-schedule" class="page hidden p-6 pb-24 md:pb-6 max-w-7xl mx-auto">
-            <!-- Header: Back Button (Left) | Schedule + Date (Center) | Notification (Right) -->
-            <header class="flex justify-between items-center mb-8 pt-4">
-                <button onclick="navigate('home')"
-                    class="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:text-brand-blue shadow-sm transition-colors flex-shrink-0">
-                    <i class="fas fa-arrow-left text-xl"></i>
-                </button>
-
-                <div class="flex flex-col items-center justify-center flex-1 px-2 text-center">
-                    <h2 class="text-brand-blue font-bold text-xl tracking-wide uppercase mb-0.5">SCHEDULE</h2>
-                    <p class="text-gray-400 font-medium text-xs current-date-display"></p>
-                </div>
-
-                <button
-                    class="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:text-brand-blue shadow-sm transition-colors relative flex-shrink-0">
-                    <i class="far fa-bell text-xl"></i>
-                    <span
-                        class="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
-                </button>
-            </header>
-
-            <!-- Calendar & Routine Split Section -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-stretch mb-6">
-                <!-- Calendar Widget -->
-                <div
-                    class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-gray-100 flex flex-col justify-between h-full min-h-[160px] w-full">
-                    <!-- Month/Year Selector -->
-                    <div class="flex items-center justify-between mb-2">
-                        <button
-                            class="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center text-gray-600 hover:text-brand-blue shadow-sm border border-gray-100 transition-colors">
-                            <i class="fas fa-chevron-left text-[10px]"></i>
-                        </button>
-                        <span class="font-bold text-gray-800 text-sm">Sep, 2026</span>
-                        <button
-                            class="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center text-gray-600 hover:text-brand-blue shadow-sm border border-gray-100 transition-colors">
-                            <i class="fas fa-chevron-right text-[10px]"></i>
-                        </button>
-                    </div>
-
-                    <!-- Days Selector -->
-                    <div class="flex justify-between items-end w-full px-1">
-                        <!-- Unselected Day -->
-                        <div class="flex flex-col items-center justify-center cursor-pointer group py-1 px-1 sm:px-2">
-                            <span
-                                class="text-[10px] sm:text-xs text-gray-500 font-medium mb-1 group-hover:text-brand-blue transition-colors">Wed</span>
-                            <span
-                                class="text-base sm:text-lg font-bold text-gray-800 group-hover:text-brand-blue transition-colors">09</span>
-                        </div>
-                        <!-- Unselected Day -->
-                        <div class="flex flex-col items-center justify-center cursor-pointer group py-1 px-1 sm:px-2">
-                            <span
-                                class="text-[10px] sm:text-xs text-gray-500 font-medium mb-1 group-hover:text-brand-blue transition-colors">Thu</span>
-                            <span
-                                class="text-base sm:text-lg font-bold text-gray-800 group-hover:text-brand-blue transition-colors">10</span>
-                        </div>
-                        <!-- Selected Day (Blue Text Only) -->
-                        <div class="flex flex-col items-center justify-center cursor-pointer group py-1 px-1 sm:px-2">
-                            <span
-                                class="text-[10px] sm:text-xs font-bold mb-1 text-brand-blue transition-colors">Fri</span>
-                            <span
-                                class="text-base sm:text-lg font-extrabold text-brand-blue transition-colors scale-110">11</span>
-                        </div>
-                        <!-- Unselected Day -->
-                        <div class="flex flex-col items-center justify-center cursor-pointer group py-1 px-1 sm:px-2">
-                            <span
-                                class="text-[10px] sm:text-xs text-gray-500 font-medium mb-1 group-hover:text-brand-blue transition-colors">Sat</span>
-                            <span
-                                class="text-base sm:text-lg font-bold text-gray-800 group-hover:text-brand-blue transition-colors">12</span>
-                        </div>
-                        <!-- Unselected Day -->
-                        <div
-                            class="flex flex-col items-center justify-center cursor-pointer group py-1 px-1 sm:px-2 hidden sm:flex">
-                            <span
-                                class="text-[10px] sm:text-xs text-gray-500 font-medium mb-1 group-hover:text-brand-blue transition-colors">Sun</span>
-                            <span
-                                class="text-base sm:text-lg font-bold text-gray-800 group-hover:text-brand-blue transition-colors">13</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Routine Card -->
-                <div
-                    class="bg-[#dcd8cc] rounded-3xl p-5 sm:p-6 shadow-sm flex items-center justify-between relative overflow-hidden text-gray-800 transition-all h-full min-h-[160px] w-full">
-                    <div class="max-w-[70%] z-10 flex flex-col justify-center h-full">
-                        <h3 class="font-bold text-lg sm:text-xl text-gray-900 mb-1">Create a Smart Routine</h3>
-                        <p class="text-xs sm:text-sm font-semibold text-gray-700 mb-0.5">Automate your home with ease.
-                        </p>
-                        <p class="text-[10px] sm:text-xs text-gray-600 mb-4">Set a schedule for your smart devices.</p>
-                        <button onclick="openModal('modal-add-room')"
-                            class="bg-[#4a463c] text-white font-medium px-5 py-2.5 rounded-full text-xs sm:text-sm shadow-md hover:opacity-90 transition-all w-fit mt-auto">
-                            Create Now
-                        </button>
-                    </div>
-                    <!-- Bell Illustration -->
-                    <div class="absolute -right-2 bottom-0 text-[#988c78] opacity-90 pointer-events-none">
-                        <i class="fas fa-bell text-7xl sm:text-8xl transform rotate-12 translate-y-2"></i>
-                    </div>
-                </div>
-            </div>
-
-            <div class="space-y-4">
-                <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex justify-between items-center hover:shadow-md transition-shadow cursor-pointer"
-                    onclick="this.querySelector('.toggle-checkbox').click()">
-                    <div class="flex items-start gap-4">
-                        <div class="mt-1 font-bold text-xl text-gray-800">22:00</div>
-                        <div>
-                            <h3 class="font-bold text-lg text-gray-800">Night Sleep Mode</h3>
-                            <p class="text-sm text-gray-500 line-clamp-1">Your Home. Smarter. Safer.</p>
-                        </div>
-                    </div>
-                    <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in"
-                        onclick="event.stopPropagation()">
-                        <input type="checkbox" checked
-                            class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0" />
-                        <label
-                            class="toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300"></label>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex justify-between items-center hover:shadow-md transition-shadow cursor-pointer"
-                    onclick="this.querySelector('.toggle-checkbox').click()">
-                    <div class="flex items-start gap-4">
-                        <div class="mt-1 font-bold text-xl text-gray-800">13:00</div>
-                        <div>
-                            <h3 class="font-bold text-lg text-gray-800">Cool Down Studio</h3>
-                            <p class="text-sm text-gray-500 line-clamp-1">Set Sharp AC to 24°C Cool Mode</p>
-                        </div>
-                    </div>
-                    <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in"
-                        onclick="event.stopPropagation()">
-                        <input type="checkbox" checked
-                            class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0" />
-                        <label
-                            class="toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300"></label>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex justify-between items-center hover:shadow-md transition-shadow cursor-pointer"
-                    onclick="this.querySelector('.toggle-checkbox').click()">
-                    <div class="flex items-start gap-4">
-                        <div class="mt-1 font-bold text-xl text-gray-800">07:00</div>
-                        <div>
-                            <h3 class="font-bold text-lg text-gray-800">Morning Routine</h3>
-                            <p class="text-sm text-gray-500 line-clamp-2">Turn on living room lights & set AC to 24°C
-                            </p>
-                        </div>
-                    </div>
-                    <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in"
-                        onclick="event.stopPropagation()">
-                        <input type="checkbox"
-                            class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0" />
-                        <label
-                            class="toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300"></label>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ================= PAGE: SETTINGS ================= -->
-        <div id="page-settings" class="page hidden p-6 pb-24 md:pb-6 max-w-7xl mx-auto">
-            <header class="flex justify-between items-center mb-8 pt-4">
-                <button onclick="navigate('home')"
-                    class="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:text-brand-blue shadow-sm transition-colors flex-shrink-0">
-                    <i class="fas fa-arrow-left text-xl"></i>
-                </button>
-
-                <div class="flex flex-col items-center justify-center flex-1 px-2 text-center">
-                    <h2 class="text-brand-blue font-bold text-xl tracking-wide uppercase mb-0">SETTINGS</h2>
-                </div>
-
-                <button
-                    class="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:text-brand-blue shadow-sm transition-colors relative flex-shrink-0">
-                    <i class="far fa-bell text-xl"></i>
-                    <span
-                        class="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
-                </button>
-            </header>
-
-            <!-- Profile Overview Card -->
-            <div
-                class="bg-gradient-to-br from-brand-blue to-blue-500 rounded-3xl p-6 text-white mb-8 shadow-lg shadow-blue-500/30 flex items-center gap-4">
-                <div class="w-16 h-16 rounded-full bg-white/20 border-2 border-white/50 overflow-hidden flex-shrink-0">
-                    <img src="https://ui-avatars.com/api/?name=Miko&background=fff&color=2563EB" alt="Profile"
-                        class="w-full h-full object-cover">
-                </div>
-                <div>
-                    <h3 class="text-2xl font-bold" id="settings-home-name">MikoHome</h3>
-                    <p class="text-blue-100 text-sm flex items-center gap-1 mt-1">
-                        <i class="fas fa-map-marker-alt"></i> <span id="settings-location">Tembalang, Semarang</span>
-                    </p>
-                </div>
-            </div>
-
-            <h3 class="font-bold text-gray-500 uppercase tracking-wider text-sm mb-4 ml-2">Other Settings</h3>
-
-            <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-100">
-                <div class="p-5 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors"
-                    onclick="toggleProfileDetails()">
-                    <div class="flex items-center gap-4 text-gray-800 font-medium text-lg">
-                        <i class="far fa-user w-6 text-center text-xl text-gray-400"></i>
-                        Profile details
-                    </div>
-                    <i id="profile-chevron"
-                        class="fas fa-chevron-right text-gray-400 transition-transform duration-300"></i>
-                </div>
-                <div id="profile-details-menu" class="hidden bg-gray-50 p-5 border-t border-gray-100">
-                    <p class="text-sm text-gray-500 mb-4">Manage your account sessions and smart home connection.</p>
-                    <button onclick="logout()"
-                        class="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 py-3 rounded-xl font-bold hover:bg-red-100 transition-colors border border-red-100">
-                        <i class="fas fa-sign-out-alt"></i> Log Out
+        <div id="page-schedule"
+            class="page hidden p-6 pb-24 md:pb-6 max-w-7xl mx-auto relative overflow-hidden bg-sky-300"
+            style="background-image: linear-gradient(rgba(224, 242, 254, 0.85), rgba(186, 230, 253, 0.85)), url('https://i.pinimg.com/736x/85/e1/d9/85e1d926bea7e80ed65d60c91b0c65c7.jpg'); background-size: 300px; background-repeat: repeat; background-position: center; background-attachment: fixed;">
+            <!-- Cloud overlay for faded effect -->
+            <div class="absolute inset-0 bg-gradient-to-b from-sky-100/40 to-sky-200/40"></div>
+            <div class="relative z-10">
+                <!-- Header: Back Button (Left) | Schedule + Date (Center) | Notification (Right) -->
+                <header class="flex justify-between items-center mb-8 pt-4">
+                    <button onclick="navigate('home')"
+                        class="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:text-brand-blue shadow-sm transition-colors flex-shrink-0">
+                        <i class="fas fa-arrow-left text-xl"></i>
                     </button>
-                    <button onclick="resetData()"
-                        class="mt-3 w-full flex items-center justify-center gap-2 bg-gray-200 text-gray-600 py-3 rounded-xl font-bold hover:bg-gray-300 transition-colors">
-                        <i class="fas fa-trash-alt"></i> Reset All Data
+
+                    <div class="flex flex-col items-center justify-center flex-1 px-2 text-center">
+                        <h2 class="text-brand-blue font-bold text-xl tracking-wide uppercase mb-0.5"
+                            data-i18n="schedule_title">JADWAL</h2>
+                    </div>
+
+                    <button
+                        class="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:text-brand-blue shadow-sm transition-colors relative flex-shrink-0">
+                        <i class="far fa-bell text-xl"></i>
+                        <span
+                            class="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
                     </button>
-                </div>
-                <div class="p-5 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors">
-                    <div class="flex items-center gap-4 text-gray-800 font-medium text-lg">
-                        <i class="fas fa-key w-6 text-center text-xl text-gray-400"></i>
-                        Password
-                    </div>
-                    <i class="fas fa-chevron-right text-gray-400"></i>
-                </div>
-                <div class="p-5 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors"
-                    onclick="this.querySelector('.toggle-checkbox').click()">
-                    <div class="flex items-center gap-4 text-gray-800 font-medium text-lg">
-                        <i class="far fa-bell w-6 text-center text-xl text-gray-400"></i>
-                        Notifications
-                    </div>
-                    <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in"
-                        onclick="event.stopPropagation()">
-                        <input type="checkbox" checked
-                            class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0" />
-                        <label
-                            class="toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300"></label>
-                    </div>
-                </div>
-            </div>
-        </div>
+                </header>
 
-        <!-- ================= PAGE: ROOM DETAIL ================= -->
-        <div id="page-room" class="page hidden p-6 pb-24 md:pb-6 max-w-7xl mx-auto h-full flex flex-col">
-            <header class="flex items-center justify-between mb-6 pt-4">
-                <button onclick="navigate('home')"
-                    class="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:text-brand-blue shadow-sm transition-colors flex-shrink-0">
-                    <i class="fas fa-arrow-left text-xl"></i>
-                </button>
-                <div class="flex flex-col items-center justify-center flex-1 px-2 text-center">
-                    <h2 class="text-brand-blue font-bold text-xl tracking-wide uppercase mb-0" id="room-title">Living
-                        Room</h2>
-                </div>
-                <button
-                    class="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:text-brand-blue shadow-sm transition-colors relative flex-shrink-0">
-                    <i class="far fa-bell text-xl"></i>
-                    <span
-                        class="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
-                </button>
-            </header>
-
-            <div class="flex justify-between items-end mb-4">
-                <p class="text-gray-500 font-medium" id="room-stats">0/3 Active • 3 connected devices</p>
-            </div>
-
-            <!-- Scene Card -->
-            <div id="room-scene-card"
-                class="bg-brand-blue rounded-3xl p-6 text-white mb-8 shadow-lg shadow-blue-500/30 relative overflow-hidden">
-                <div class="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl">
-                </div>
-
-                <div class="flex items-center gap-4 relative z-10">
+                <!-- Calendar & Routine Split Section -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-stretch mb-6">
+                    <!-- Calendar Widget -->
                     <div
-                        class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/40 shadow-inner">
-                        <i id="scene-icon" class="fas fa-film text-2xl text-white"></i>
+                        class="bg-[#7fbbdd] rounded-3xl p-5 sm:p-6 shadow-sm border border-gray-100 flex flex-col justify-between h-full min-h-[160px] w-full">
+                        <!-- Month/Year Selector -->
+                        <div class="flex items-center justify-between mb-2">
+                            <button
+                                class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center text-white hover:text-[#7fbbdd] hover:bg-white transition-colors">
+                                <i class="fas fa-chevron-left text-[10px]"></i>
+                            </button>
+                            <span class="font-bold text-white text-base sm:text-lg">Monday, 10 February 2026</span>
+                            <button
+                                class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center text-white hover:text-[#7fbbdd] hover:bg-white transition-colors">
+                                <i class="fas fa-chevron-right text-[10px]"></i>
+                            </button>
+                        </div>
+
+                        <!-- Days Selector -->
+                        <div class="flex justify-between items-end w-full px-1">
+                            <!-- Unselected Day -->
+                            <div
+                                class="flex flex-col items-center justify-center cursor-pointer group py-1 px-1 sm:px-2">
+                                <span
+                                    class="text-[10px] sm:text-xs text-blue-100 font-medium mb-1 group-hover:text-white transition-colors">Min</span>
+                                <span
+                                    class="text-base sm:text-lg font-bold text-white group-hover:text-white transition-colors">09</span>
+                            </div>
+                            <!-- Unselected Day -->
+                            <div
+                                class="flex flex-col items-center justify-center cursor-pointer group py-1 px-1 sm:px-2">
+                                <span
+                                    class="text-[10px] sm:text-xs text-blue-100 font-medium mb-1 group-hover:text-white transition-colors">Sen</span>
+                                <span
+                                    class="text-base sm:text-lg font-bold text-white group-hover:text-white transition-colors">10</span>
+                            </div>
+                            <!-- Selected Day -->
+                            <div
+                                class="flex flex-col items-center justify-center cursor-pointer group py-1 px-2 bg-white rounded-xl shadow-sm">
+                                <span
+                                    class="text-[10px] sm:text-xs font-bold mb-1 text-[#7fbbdd] transition-colors">Sel</span>
+                                <span
+                                    class="text-base sm:text-lg font-extrabold text-[#7fbbdd] transition-colors scale-110">11</span>
+                            </div>
+                            <!-- Unselected Day -->
+                            <div
+                                class="flex flex-col items-center justify-center cursor-pointer group py-1 px-1 sm:px-2">
+                                <span
+                                    class="text-[10px] sm:text-xs text-blue-100 font-medium mb-1 group-hover:text-white transition-colors">Rab</span>
+                                <span
+                                    class="text-base sm:text-lg font-bold text-white group-hover:text-white transition-colors">12</span>
+                            </div>
+                            <!-- Unselected Day -->
+                            <div
+                                class="hidden sm:flex sm:flex-col items-center justify-center cursor-pointer group py-1 px-1 sm:px-2">
+                                <span
+                                    class="text-[10px] sm:text-xs text-blue-100 font-medium mb-1 group-hover:text-white transition-colors">Kam</span>
+                                <span
+                                    class="text-base sm:text-lg font-bold text-white group-hover:text-white transition-colors">13</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Routine Card -->
+                    <div
+                        class="bg-[#f58b05] rounded-3xl p-5 sm:p-6 shadow-sm flex items-center justify-between relative overflow-hidden text-gray-800 transition-all h-full min-h-[160px] w-full">
+                        <div class="max-w-[70%] z-10 flex flex-col justify-center h-full">
+                            <h3 class="font-bold text-lg sm:text-xl text-gray-900 mb-1" data-i18n="sched_title">Buat
+                                Rutinitas Pintar</h3>
+                            <p class="text-xs sm:text-sm font-semibold text-gray-700 mb-0.5"
+                                data-i18n="sched_subtitle1">Otomatiskan rumah Anda dengan mudah.</p>
+                            <p class="text-[10px] sm:text-xs text-gray-700/80 mb-4" data-i18n="sched_subtitle2">Atur
+                                jadwal untuk perangkat pintar Anda.</p>
+                            <button onclick="openAddRoutineModal()"
+                                class="bg-gray-900 text-white font-medium px-5 py-2.5 rounded-full text-xs sm:text-sm shadow-md hover:bg-black transition-all w-fit mt-auto">
+                                <span data-i18n="sched_create_btn">Buat Sekarang</span>
+                            </button>
+                        </div>
+                        <!-- Bell Illustration -->
+                        <div class="absolute -right-2 bottom-0 text-black/10 opacity-90 pointer-events-none">
+                            <i class="fas fa-bell text-7xl sm:text-8xl transform rotate-12 translate-y-2"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="routines-list" class="space-y-4">
+                    <div class="routine-card bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex justify-between items-center hover:shadow-md transition-shadow cursor-pointer"
+                        onclick="this.querySelector('.toggle-checkbox').click()">
+                        <div class="flex items-start gap-4">
+                            <div class="mt-1 font-bold text-xl text-gray-800">22:00</div>
+                            <div>
+                                <h3 class="font-bold text-lg text-gray-800" data-i18n="sched_night">Mode Tidur Malam
+                                </h3>
+                                <p class="text-sm text-gray-500 line-clamp-1" data-i18n="sched_night_desc">Rumah Anda.
+                                    Lebih Pintar. Lebih Aman.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in"
+                                onclick="event.stopPropagation()">
+                                <input type="checkbox" checked
+                                    class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0" />
+                                <label
+                                    class="toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300"></label>
+                            </div>
+                            <button onclick="event.stopPropagation(); this.closest('.routine-card').remove();"
+                                class="text-gray-400 hover:text-red-500 transition-colors p-1" title="Hapus">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="routine-card bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex justify-between items-center hover:shadow-md transition-shadow cursor-pointer"
+                        onclick="this.querySelector('.toggle-checkbox').click()">
+                        <div class="flex items-start gap-4">
+                            <div class="mt-1 font-bold text-xl text-gray-800">13:00</div>
+                            <div>
+                                <h3 class="font-bold text-lg text-gray-800" data-i18n="sched_studio">Pendinginan Studio
+                                </h3>
+                                <p class="text-sm text-gray-500 line-clamp-1" data-i18n="sched_studio_desc">Set AC Sharp
+                                    ke Mode Dingin 24°C</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in"
+                                onclick="event.stopPropagation()">
+                                <input type="checkbox" checked
+                                    class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0" />
+                                <label
+                                    class="toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300"></label>
+                            </div>
+                            <button onclick="event.stopPropagation(); this.closest('.routine-card').remove();"
+                                class="text-gray-400 hover:text-red-500 transition-colors p-1" title="Hapus">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="routine-card bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex justify-between items-center hover:shadow-md transition-shadow cursor-pointer"
+                        onclick="this.querySelector('.toggle-checkbox').click()">
+                        <div class="flex items-start gap-4">
+                            <div class="mt-1 font-bold text-xl text-gray-800">07:00</div>
+                            <div>
+                                <h3 class="font-bold text-lg text-gray-800" data-i18n="sched_morning">Rutinitas Pagi
+                                </h3>
+                                <p class="text-sm text-gray-500 line-clamp-2" data-i18n="sched_morning_desc">Nyalakan
+                                    lampu ruang tamu & atur AC ke 24°C
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in"
+                                onclick="event.stopPropagation()">
+                                <input type="checkbox"
+                                    class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0" />
+                                <label
+                                    class="toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300"></label>
+                            </div>
+                            <button onclick="event.stopPropagation(); this.closest('.routine-card').remove();"
+                                class="text-gray-400 hover:text-red-500 transition-colors p-1" title="Hapus">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <!-- ================= PAGE: SETTINGS ================= -->
+        <div id="page-settings"
+            class="page hidden p-6 pb-24 md:pb-6 max-w-7xl mx-auto relative overflow-hidden bg-sky-300"
+            style="background-image: linear-gradient(rgba(224, 242, 254, 0.85), rgba(186, 230, 253, 0.85)), url('https://i.pinimg.com/736x/85/e1/d9/85e1d926bea7e80ed65d60c91b0c65c7.jpg'); background-size: 300px; background-repeat: repeat; background-position: center; background-attachment: fixed;">
+            <!-- Cloud overlay for faded effect -->
+            <div class="absolute inset-0 bg-gradient-to-b from-sky-100/40 to-sky-200/40"></div>
+            <div class="relative z-10">
+                <header class="flex justify-between items-center mb-8 pt-4">
+                    <button onclick="navigate('home')"
+                        class="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:text-brand-blue shadow-sm transition-colors flex-shrink-0">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </button>
+
+                    <div class="flex flex-col items-center justify-center flex-1 px-2 text-center">
+                        <h2 class="text-brand-blue font-bold text-xl tracking-wide uppercase mb-0"
+                            data-i18n="settings_title">PENGATURAN</h2>
+                    </div>
+
+                    <button
+                        class="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:text-brand-blue shadow-sm transition-colors relative flex-shrink-0">
+                        <i class="far fa-bell text-xl"></i>
+                        <span
+                            class="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
+                    </button>
+                </header>
+
+                <!-- Profile Overview Card -->
+                <div
+                    class="bg-[#7fbbdd] rounded-3xl p-6 text-white mb-8 shadow-lg shadow-[#7fbbdd]/40 flex items-center gap-4">
+                    <div
+                        class="w-16 h-16 rounded-full bg-white/20 border-2 border-white/50 overflow-hidden flex-shrink-0">
+                        <img src="https://ui-avatars.com/api/?name=Miko&background=fff&color=2563EB" alt="Profile"
+                            class="w-full h-full object-cover">
                     </div>
                     <div>
-                        <h2 class="text-2xl font-bold mb-1" id="scene-title">Movie Time</h2>
-                        <p class="text-blue-50 text-sm font-medium" id="scene-desc">Ambient lights ON, TV & Speaker
-                            active</p>
+                        <h3 class="text-2xl font-bold" id="settings-home-name">MikoHome</h3>
+                        <p class="text-blue-100 text-sm flex items-center gap-1 mt-1">
+                            <i class="fas fa-map-marker-alt"></i> <span id="settings-location">Tembalang,
+                                Semarang</span>
+                        </p>
+                    </div>
+                </div>
+
+                <h3 class="font-bold text-gray-500 uppercase tracking-wider text-sm mb-4 ml-2"
+                    data-i18n="settings_other">Pengaturan Lainnya</h3>
+
+                <div
+                    class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-100">
+                    <div class="p-5 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors"
+                        onclick="toggleProfileDetails()">
+                        <div class="flex items-center gap-4 text-gray-800 font-medium text-lg">
+                            <i class="far fa-user w-6 text-center text-xl text-gray-400"></i>
+                            <span data-i18n="set_profile">Detail profil</span>
+                        </div>
+                        <i id="profile-chevron"
+                            class="fas fa-chevron-right text-gray-400 transition-transform duration-300"></i>
+                    </div>
+                    <div id="profile-details-menu" class="hidden bg-gray-50 p-5 border-t border-gray-100">
+                        <p class="text-sm text-gray-500 mb-4" data-i18n="set_profile_desc">Kelola sesi akun dan koneksi
+                            rumah pintar Anda.</p>
+
+                        <div class="mb-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-3">
+                            <div>
+                                <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">Nama Rumah /
+                                    Pemilik</p>
+                                <p id="profile-detail-name" class="font-medium text-gray-800">-</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">Email</p>
+                                <p id="profile-detail-email" class="font-medium text-gray-800">-</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">Lokasi</p>
+                                <p id="profile-detail-location" class="font-medium text-gray-800">-</p>
+                            </div>
+                        </div>
+
+                        <button onclick="logout()"
+                            class="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 py-3 rounded-xl font-bold hover:bg-red-100 transition-colors border border-red-100">
+                            <i class="fas fa-sign-out-alt"></i> <span data-i18n="set_logout">Keluar</span>
+                        </button>
+                        <button onclick="resetData()"
+                            class="mt-3 w-full flex items-center justify-center gap-2 bg-gray-200 text-gray-600 py-3 rounded-xl font-bold hover:bg-gray-300 transition-colors">
+                            <i class="fas fa-trash-alt"></i> <span data-i18n="set_reset">Hapus Semua Data</span>
+                        </button>
+                    </div>
+                    <div
+                        class="p-5 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors">
+                        <div class="flex items-center gap-4 text-gray-800 font-medium text-lg">
+                            <i class="fas fa-key w-6 text-center text-xl text-gray-400"></i>
+                            <span data-i18n="set_password">Kata Sandi</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400"></i>
+                    </div>
+                    <div class="p-5 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors"
+                        onclick="this.querySelector('.toggle-checkbox').click()">
+                        <div class="flex items-center gap-4 text-gray-800 font-medium text-lg">
+                            <i class="far fa-bell w-6 text-center text-xl text-gray-400"></i>
+                            <span data-i18n="set_notifications">Notifikasi</span>
+                        </div>
+                        <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in"
+                            onclick="event.stopPropagation()">
+                            <input type="checkbox" checked
+                                class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0" />
+                            <label
+                                class="toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300"></label>
+                        </div>
+                    </div>
+                    <div class="p-5 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center gap-4 text-gray-800 font-medium text-lg">
+                            <i class="fas fa-globe w-6 text-center text-xl text-gray-400"></i>
+                            <span data-i18n="set_language">Bahasa</span>
+                        </div>
+                        <div class="flex bg-gray-100 p-1 rounded-lg" onclick="event.stopPropagation()">
+                            <button onclick="setLanguageFromSettings('en')" id="settings-lang-en"
+                                class="px-3 py-1 text-xs font-bold rounded transition-colors text-gray-500 hover:text-gray-800">EN</button>
+                            <button onclick="setLanguageFromSettings('id')" id="settings-lang-id"
+                                class="px-3 py-1 text-xs font-bold rounded transition-colors bg-white text-brand-blue shadow-sm">ID</button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <h3 class="font-bold text-gray-800 text-lg mb-4">Room Device Control</h3>
-
-            <!-- Devices Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 content-start" id="devices-list"></div>
         </div>
+        <!-- ================= PAGE: ROOM DETAIL (Converted to Modal) ================= -->
+        <div id="modal-room-detail"
+            class="fixed inset-0 z-[100] hidden flex-col justify-end bg-gray-900/60 backdrop-blur-sm transition-opacity">
+            <div
+                class="bg-white rounded-t-3xl w-full max-w-2xl mx-auto shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-[slideUpBottom_0.3s_ease-out]">
+                <!-- Handle Bar -->
+                <div class="w-full flex justify-center pt-3 pb-1 bg-white relative z-20 cursor-pointer"
+                    onclick="closeModal('modal-room-detail')">
+                    <div class="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+                </div>
+                <div class="p-6 overflow-y-auto no-scrollbar pb-12 relative flex-1">
 
+                    <header class="flex items-center justify-between mb-6 pt-0">
+                        <button onclick="closeModal('modal-room-detail')"
+                            class="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:text-brand-blue shadow-sm transition-colors flex-shrink-0">
+                            <i class="fas fa-arrow-left text-xl"></i>
+                        </button>
+                        <div class="flex flex-col items-center justify-center flex-1 px-2 text-center">
+                            <h2 class="text-brand-blue font-bold text-xl tracking-wide uppercase mb-0" id="room-title">
+                                Living
+                                Room</h2>
+                        </div>
+                        <button
+                            class="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:text-brand-blue shadow-sm transition-colors relative flex-shrink-0">
+                            <i class="far fa-bell text-xl"></i>
+                            <span
+                                class="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
+                        </button>
+                    </header>
+
+                    <div class="flex justify-between items-end mb-4">
+                        <p class="text-gray-500 font-medium" id="room-stats">0/3 Aktif • 3 perangkat terhubung</p>
+                    </div>
+
+                    <!-- Scene Card -->
+                    <div id="room-scene-card"
+                        class="bg-[#7fbbdd] rounded-3xl p-6 text-white mb-8 shadow-lg shadow-[#7fbbdd]/40 relative overflow-hidden">
+                        <div
+                            class="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl">
+                        </div>
+
+                        <div class="flex items-center gap-4 relative z-10">
+                            <div
+                                class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/40 shadow-inner">
+                                <i id="scene-icon" class="fas fa-film text-2xl text-white"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-2xl font-bold mb-1" id="scene-title">Movie Time</h2>
+                                <p class="text-blue-50 text-sm font-medium" id="scene-desc">Lampu redup MENYALA, TV &
+                                    Speaker aktif</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 class="font-bold text-gray-800 text-lg mb-4" data-i18n="room_dev_control">Kontrol Perangkat
+                        Kamar</h3>
+
+                    <!-- Devices Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="devices-list"></div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- ================= MODALS ================= -->
+    <!-- Modal Add Routine -->
+    <div id="modal-add-routine"
+        class="fixed inset-0 z-[100] hidden items-center justify-center bg-gray-900/40 backdrop-blur-sm p-4 sm:p-6 transition-opacity">
+        <div class="bg-white/95 backdrop-blur-xl rounded-[2rem] sm:rounded-3xl w-full max-w-md shadow-2xl overflow-y-auto no-scrollbar max-h-[90vh] border border-white/50 transform transition-transform translate-y-8 opacity-0 sm:translate-y-0 sm:opacity-100"
+            id="modal-add-routine-content" style="transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
+            <div
+                class="px-8 py-6 border-b border-gray-100/50 flex justify-between items-center sticky top-0 bg-white/95 backdrop-blur-xl z-20">
+                <h3
+                    class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600">
+                    Buat Rutinitas Pintar</h3>
+                <button onclick="closeModal('modal-add-routine')"
+                    class="w-10 h-10 rounded-full bg-gray-100/80 hover:bg-gray-200 text-gray-500 hover:text-gray-800 transition-all flex items-center justify-center">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <form onsubmit="submitAddRoutine(event)" class="p-8 space-y-6">
+                <div class="space-y-4">
+                    <!-- Name Input -->
+                    <div class="relative">
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Nama
+                            Rutinitas</label>
+                        <input type="text" id="new-routine-name" required placeholder="mis., Sleep"
+                            class="w-full px-5 py-4 rounded-2xl bg-gray-50/80 border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-brand-blue focus:bg-white text-gray-800 font-medium placeholder-gray-400 transition-all shadow-inner">
+                    </div>
+                    <!-- Room & Time side-by-side -->
+                    <div class="flex gap-4">
+                        <div class="flex-1 relative">
+                            <label
+                                class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Kamar</label>
+                            <select id="new-routine-room" onchange="updateRoutineDevices(this.value)"
+                                class="w-full px-5 py-4 rounded-2xl bg-gray-50/80 border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-brand-blue focus:bg-white text-gray-800 font-medium transition-all appearance-none cursor-pointer shadow-inner">
+                            </select>
+                        </div>
+                        <div class="flex-1 relative">
+                            <label
+                                class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Jam</label>
+                            <input type="time" id="new-routine-time" required value="17:30"
+                                class="w-full px-5 py-4 rounded-2xl bg-gray-50/80 border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-brand-blue focus:bg-white text-gray-800 font-medium transition-all shadow-inner">
+                        </div>
+                    </div>
+                    <!-- Devices -->
+                    <div class="pt-2">
+                        <label
+                            class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-1">Perangkat &
+                            Aksi</label>
+                        <div id="new-routine-device" class="space-y-2 max-h-48 overflow-y-auto no-scrollbar px-1 pb-1">
+                            <!-- Checkboxes populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeModal('modal-add-routine')"
+                        class="flex-1 bg-gray-100/80 text-gray-700 py-4 rounded-2xl font-bold hover:bg-gray-200 transition-all">
+                        Batal
+                    </button>
+                    <button type="submit"
+                        class="flex-1 bg-gradient-to-r from-blue-600 to-brand-blue text-white py-4 rounded-2xl font-bold hover:from-blue-700 hover:to-blue-800 transition-all shadow-xl shadow-blue-500/30">
+                        Simpan Rutinitas
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal Add Room -->
     <div id="modal-add-room"
         class="fixed inset-0 z-[100] hidden items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 transition-opacity">
         <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
             <div class="p-6 border-b border-gray-100 flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-800">Add New Room</h3>
+                <h3 class="text-xl font-bold text-gray-800" data-i18n="add_room_title">Tambah Kamar Baru</h3>
                 <button onclick="closeModal('modal-add-room')"
                     class="text-gray-400 hover:text-gray-600 transition-colors">
                     <i class="fas fa-times text-xl"></i>
@@ -707,26 +918,35 @@
             </div>
             <form onsubmit="submitAddRoom(event)" class="p-6 space-y-4">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Room Name</label>
-                    <input type="text" id="new-room-name" required placeholder="e.g., Backyard"
+                    <label class="block text-sm font-semibold text-gray-700 mb-2" data-i18n="add_room_name">Nama
+                        Kamar</label>
+                    <input type="text" id="new-room-name" required placeholder="mis., Halaman Belakang"
+                        data-i18n-placeholder="add_room_name_ph"
                         class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 transition-all">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Room Type / Icon</label>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2" data-i18n="add_room_type">Tipe Kamar /
+                        Ikon</label>
                     <select id="new-room-type"
                         class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 transition-all appearance-none cursor-pointer">
-                        <option value="living">Living Room</option>
-                        <option value="bed">Bedroom</option>
-                        <option value="kitchen">Kitchen</option>
-                        <option value="bath">Bathroom</option>
-                        <option value="garage">Garage / Outdoor</option>
+                        <option value="living">Ruang Tamu</option>
+                        <option value="bed">Kamar Tidur</option>
+                        <option value="kitchen">Dapur</option>
+                        <option value="bath">Kamar Mandi</option>
+                        <option value="garage">Garasi / Luar Ruangan</option>
+                        <option value="studio">Studio</option>
+                        <option value="office">Kantor / Ruang Kerja</option>
+                        <option value="dining">Ruang Makan</option>
+                        <option value="basement">Ruang Bawah Tanah</option>
                     </select>
                 </div>
                 <div class="pt-4 flex gap-3">
                     <button type="button" onclick="closeModal('modal-add-room')"
-                        class="flex-1 py-3 rounded-xl font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all">Cancel</button>
+                        class="flex-1 py-3 rounded-xl font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all"><span
+                            data-i18n="cancel_btn">Batal</span></button>
                     <button type="submit"
-                        class="flex-1 py-3 rounded-xl font-semibold bg-brand-blue text-white shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition-all">Save</button>
+                        class="flex-1 py-3 rounded-xl font-semibold bg-brand-blue text-white shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition-all"><span
+                            data-i18n="save_btn">Simpan</span></button>
                 </div>
             </form>
         </div>
@@ -737,7 +957,7 @@
         class="fixed inset-0 z-[100] hidden items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 transition-opacity">
         <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
             <div class="p-6 border-b border-gray-100 flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-800">Add Device</h3>
+                <h3 class="text-xl font-bold text-gray-800" data-i18n="add_device_title">Tambah Perangkat</h3>
                 <button onclick="closeModal('modal-add-device')"
                     class="text-gray-400 hover:text-gray-600 transition-colors">
                     <i class="fas fa-times text-xl"></i>
@@ -745,29 +965,34 @@
             </div>
             <form onsubmit="submitAddDevice(event)" class="p-6 space-y-4">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Device Name</label>
-                    <input type="text" id="new-device-name" required placeholder="e.g., Wall Fan"
+                    <label class="block text-sm font-semibold text-gray-700 mb-2" data-i18n="add_device_name">Nama
+                        Perangkat</label>
+                    <input type="text" id="new-device-name" required placeholder="mis., Kipas Dinding"
+                        data-i18n-placeholder="add_device_name_ph"
                         class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 transition-all">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Device Type</label>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2" data-i18n="add_device_type">Tipe
+                        Perangkat</label>
                     <select id="new-device-type"
                         class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800 transition-all appearance-none cursor-pointer">
-                        <option value="LIGHT">Smart Light (LIGHT)</option>
-                        <option value="AC">Air Conditioner (AC)</option>
-                        <option value="TV">Television (TV)</option>
-                        <option value="FAN">Fan (FAN)</option>
-                        <option value="PLUG">Smart Plug (PLUG)</option>
-                        <option value="CAMERA">Security Camera (CAMERA)</option>
-                        <option value="COOKER">Rice Cooker (COOKER)</option>
-                        <option value="DOOR">Smart Door (DOOR)</option>
+                        <option value="LIGHT">Lampu Pintar (LIGHT)</option>
+                        <option value="AC">AC (AC)</option>
+                        <option value="TV">Televisi (TV)</option>
+                        <option value="FAN">Kipas Angin (FAN)</option>
+                        <option value="PLUG">Stopkontak Pintar (PLUG)</option>
+                        <option value="CAMERA">Kamera Keamanan (CAMERA)</option>
+                        <option value="COOKER">Penanak Nasi (COOKER)</option>
+                        <option value="DOOR">Pintu Pintar (DOOR)</option>
                     </select>
                 </div>
                 <div class="pt-4 flex gap-3">
                     <button type="button" onclick="closeModal('modal-add-device')"
-                        class="flex-1 py-3 rounded-xl font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all">Cancel</button>
+                        class="flex-1 py-3 rounded-xl font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all"><span
+                            data-i18n="cancel_btn">Batal</span></button>
                     <button type="submit"
-                        class="flex-1 py-3 rounded-xl font-semibold bg-brand-blue text-white shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition-all">Save</button>
+                        class="flex-1 py-3 rounded-xl font-semibold bg-brand-blue text-white shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition-all"><span
+                            data-i18n="save_btn">Simpan</span></button>
                 </div>
             </form>
         </div>
@@ -812,8 +1037,8 @@
                     </svg>
                 </div>
                 <div>
-                    <h3 class="font-bold text-gray-800 leading-tight">Smart Assistant</h3>
-                    <p class="text-xs text-green-500 font-medium">Online</p>
+                    <h3 class="font-bold text-gray-800 leading-tight" data-i18n="assistant_title">Asisten Pintar</h3>
+                    <p class="text-xs text-green-500 font-medium" data-i18n="assistant_online">Aktif</p>
                 </div>
             </div>
             <button onclick="toggleAssistant()"
@@ -842,16 +1067,18 @@
                     </svg>
                 </div>
                 <div class="bg-gray-100 p-3 rounded-2xl rounded-tl-none text-sm text-gray-700 shadow-sm">
-                    Hello! I'm your Smart Home Assistant. Try typing <span class="font-bold text-brand-blue">"Turn on
-                        the night lamp in bed room 1"</span> or <span class="font-bold text-brand-blue">"Turn off the
-                        living room light"</span>.
+                    <span data-i18n="assistant_hello">Halo! Saya Asisten Rumah Pintar Anda.</span> <span
+                        data-i18n="assistant_try">Coba ketik</span> <span class="font-bold text-brand-blue">"Nyalakan
+                        lampu tidur di kamar 1"</span> <span data-i18n="assistant_or">atau</span> <span
+                        class="font-bold text-brand-blue">"Matikan lampu ruang tamu"</span>.
                 </div>
             </div>
         </div>
 
         <div class="p-4 bg-white border-t border-gray-100">
             <div class="relative flex items-center">
-                <input type="text" id="chat-input" onkeypress="handleChatEnter(event)" placeholder="Type a command..."
+                <input type="text" id="chat-input" onkeypress="handleChatEnter(event)" placeholder="Ketik perintah..."
+                    data-i18n-placeholder="assistant_ph"
                     class="w-full bg-gray-100 text-gray-800 px-4 py-3 pl-4 pr-12 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-blue transition-shadow text-sm">
                 <button onclick="sendChatMessage()"
                     class="absolute right-2 w-8 h-8 rounded-xl bg-brand-blue text-white flex items-center justify-center hover:bg-blue-600 transition-colors shadow-sm">
@@ -863,12 +1090,243 @@
 
     <script>
         // ── API Configuration ──────────────────────────────────
-        const API_BASE = window.location.origin + '/api/v1';
+        const API_BASE = (window.location.protocol === 'file:' || window.location.port !== '8000') ? 'http://127.0.0.1:8000/api/v1' : window.location.origin + '/api/v1';
         let authToken = localStorage.getItem('auth_token') || '';
         let refreshToken = localStorage.getItem('refresh_token') || '';
         let chatSessionId = localStorage.getItem('chat_session_id') || '';
         let currentUser = null;
         let ws = null;
+
+        // ── Internationalization (i18n) ─────────────────────────
+        const translations = {
+            en: {
+                nav_home: "Home",
+                nav_schedule: "Schedule",
+                nav_settings: "Settings",
+                splash_subtitle: "Your Home. Smarter. Safer.",
+                splash_btn: "GET STARTED",
+                login_subtitle: "Select the home you want to control.",
+                tab_house: "House ID",
+                tab_qr: "Scan QR",
+                email_placeholder: "Email Address",
+                password_placeholder: "Password",
+                login_btn: "Log in to your account",
+                login_no_account: "Don't have a Smart Home Server?",
+                login_setup_btn: "Setup & Create New Account",
+                qr_instruction: "Point the camera at the QR code",
+                qr_simulate_btn: "Simulate Scan",
+                qr_no_account: "Don't have a Smart Home QR?",
+                reg_back: "Back to Login",
+                reg_title: "Server Setup",
+                reg_subtitle: "Register and configure your smart home into the system.",
+                reg_home_name: "Home Name",
+                reg_home_name_ph: "e.g., The Smiths Family",
+                reg_email_ph: "e.g., you@example.com",
+                reg_location: "Location / City",
+                reg_location_ph: "e.g., South Jakarta",
+                reg_password: "Admin Password",
+                reg_password_ph: "Min. 8 characters",
+                reg_submit: "Save & Create Server",
+                home_title: "HOME",
+                search_ph: "Search rooms or devices...",
+                weather_location: "Location",
+                weather_title: "Weather",
+                weather_sunny: "Sunny",
+                schedule_title: "SCHEDULE",
+                sched_title: "Create a Smart Routine",
+                sched_subtitle1: "Automate your home with ease.",
+                sched_subtitle2: "Set a schedule for your smart devices.",
+                sched_create_btn: "Create Now",
+                sched_night: "Night Sleep Mode",
+                sched_night_desc: "Your Home. Smarter. Safer.",
+                sched_studio: "Cool Down Studio",
+                sched_studio_desc: "Set Sharp AC to 24°C Cool Mode",
+                sched_morning: "Morning Routine",
+                sched_morning_desc: "Turn on living room lights & set AC to 24°C",
+                settings_title: "SETTINGS",
+                settings_other: "Other Settings",
+                set_profile: "Profile details",
+                set_profile_desc: "Manage your account sessions and smart home connection.",
+                set_logout: "Log Out",
+                set_reset: "Reset All Data",
+                set_password: "Password",
+                set_notifications: "Notifications",
+                set_language: "Language",
+                room_dev_control: "Room Device Control",
+                add_room_title: "Add New Room",
+                add_room_name: "Room Name",
+                add_room_name_ph: "e.g., Backyard",
+                add_room_type: "Room Type / Icon",
+                add_device_title: "Add Device",
+                add_device_name: "Device Name",
+                add_device_name_ph: "e.g., Wall Fan",
+                add_device_type: "Device Type",
+                cancel_btn: "Cancel",
+                save_btn: "Save",
+                assistant_title: "Smart Assistant",
+                assistant_online: "Online",
+                assistant_hello: "Hello! I'm your Smart Home Assistant.",
+                assistant_try: "Try typing",
+                assistant_or: "or",
+                assistant_ph: "Type a command..."
+            },
+            id: {
+                nav_home: "Beranda",
+                nav_schedule: "Jadwal",
+                nav_settings: "Pengaturan",
+                splash_subtitle: "Rumah Anda. Lebih Pintar. Lebih Aman.",
+                splash_btn: "MULAI",
+                login_subtitle: "Pilih rumah yang ingin Anda kontrol.",
+                tab_house: "ID Rumah",
+                tab_qr: "Pindai QR",
+                email_placeholder: "Alamat Email",
+                password_placeholder: "Kata Sandi",
+                login_btn: "Masuk ke akun Anda",
+                login_no_account: "Belum punya Server Smart Home?",
+                login_setup_btn: "Atur & Buat Akun Baru",
+                qr_instruction: "Arahkan kamera ke kode QR",
+                qr_simulate_btn: "Simulasi Pemindaian",
+                qr_no_account: "Tidak punya QR Smart Home?",
+                reg_back: "Kembali ke Login",
+                reg_title: "Pengaturan Server",
+                reg_subtitle: "Daftar dan atur rumah pintar Anda ke dalam sistem.",
+                reg_home_name: "Nama Rumah",
+                reg_home_name_ph: "mis., Keluarga Budi",
+                reg_email_ph: "mis., anda@contoh.com",
+                reg_location: "Lokasi / Kota",
+                reg_location_ph: "mis., Jakarta Selatan",
+                reg_password: "Kata Sandi Admin",
+                reg_password_ph: "Min. 8 karakter",
+                reg_submit: "Simpan & Buat Server",
+                home_title: "BERANDA",
+                search_ph: "Cari ruangan atau perangkat...",
+                weather_location: "Lokasi",
+                weather_title: "Cuaca",
+                weather_sunny: "Cerah",
+                schedule_title: "JADWAL",
+                sched_title: "Buat Rutinitas Pintar",
+                sched_subtitle1: "Otomatiskan rumah Anda dengan mudah.",
+                sched_subtitle2: "Atur jadwal untuk perangkat pintar Anda.",
+                sched_create_btn: "Buat Sekarang",
+                sched_night: "Mode Tidur Malam",
+                sched_night_desc: "Rumah Anda. Lebih Pintar. Lebih Aman.",
+                sched_studio: "Pendinginan Studio",
+                sched_studio_desc: "Set AC Sharp ke Mode Dingin 24°C",
+                sched_morning: "Rutinitas Pagi",
+                sched_morning_desc: "Nyalakan lampu ruang tamu & atur AC ke 24°C",
+                settings_title: "PENGATURAN",
+                settings_other: "Pengaturan Lainnya",
+                set_profile: "Detail profil",
+                set_profile_desc: "Kelola sesi akun dan koneksi rumah pintar Anda.",
+                set_logout: "Keluar",
+                set_reset: "Hapus Semua Data",
+                set_password: "Kata Sandi",
+                set_notifications: "Notifikasi",
+                set_language: "Bahasa",
+                room_dev_control: "Kontrol Perangkat Kamar",
+                add_room_title: "Tambah Kamar Baru",
+                add_room_name: "Nama Kamar",
+                add_room_name_ph: "mis., Halaman Belakang",
+                add_room_type: "Tipe Kamar / Ikon",
+                add_device_title: "Tambah Perangkat",
+                add_device_name: "Nama Perangkat",
+                add_device_name_ph: "mis., Kipas Dinding",
+                add_device_type: "Tipe Perangkat",
+                cancel_btn: "Batal",
+                save_btn: "Simpan",
+                assistant_title: "Asisten Pintar",
+                assistant_online: "Aktif",
+                assistant_hello: "Halo! Saya Asisten Rumah Pintar Anda.",
+                assistant_try: "Coba ketik",
+                assistant_or: "atau",
+                assistant_ph: "Ketik perintah..."
+            }
+        };
+
+        let currentLang = localStorage.getItem('app_lang') || 'id';
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('app_lang', lang);
+
+            // Update UI toggle buttons
+            const btnEn = document.getElementById('lang-btn-en');
+            const btnId = document.getElementById('lang-btn-id');
+            if (btnEn && btnId) {
+                if (lang === 'en') {
+                    btnEn.className = "px-3 py-1 text-xs font-bold rounded-full transition-colors bg-white text-brand-blue shadow-sm";
+                    btnId.className = "px-3 py-1 text-xs font-bold rounded-full transition-colors text-gray-500 hover:text-gray-800";
+                } else {
+                    btnId.className = "px-3 py-1 text-xs font-bold rounded-full transition-colors bg-white text-brand-blue shadow-sm";
+                    btnEn.className = "px-3 py-1 text-xs font-bold rounded-full transition-colors text-gray-500 hover:text-gray-800";
+                }
+            }
+
+            // Apply translations to data-i18n elements
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang][key]) {
+                    el.innerHTML = translations[lang][key];
+                }
+            });
+
+            // Apply translations to data-i18n-placeholder elements
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if (translations[lang][key]) {
+                    el.setAttribute('placeholder', translations[lang][key]);
+                }
+            });
+
+            // Re-render rooms if we're inside the app (because room types might be translated, though we can skip this for now or rely on reload)
+        }
+
+        function setLanguageFromSettings(lang) {
+            currentLang = lang;
+            localStorage.setItem('app_lang', lang);
+
+            // Update settings page language buttons
+            const settingsEnBtn = document.getElementById('settings-lang-en');
+            const settingsIdBtn = document.getElementById('settings-lang-id');
+            if (settingsEnBtn && settingsIdBtn) {
+                if (lang === 'en') {
+                    settingsEnBtn.className = "px-3 py-1 text-xs font-bold rounded transition-colors bg-white text-brand-blue shadow-sm";
+                    settingsIdBtn.className = "px-3 py-1 text-xs font-bold rounded transition-colors text-gray-500 hover:text-gray-800";
+                } else {
+                    settingsIdBtn.className = "px-3 py-1 text-xs font-bold rounded transition-colors bg-white text-brand-blue shadow-sm";
+                    settingsEnBtn.className = "px-3 py-1 text-xs font-bold rounded transition-colors text-gray-500 hover:text-gray-800";
+                }
+            }
+
+            // Update login page language buttons
+            const loginEnBtn = document.getElementById('lang-btn-en');
+            const loginIdBtn = document.getElementById('lang-btn-id');
+            if (loginEnBtn && loginIdBtn) {
+                if (lang === 'en') {
+                    loginEnBtn.className = "px-3 py-1 text-xs font-bold rounded-full transition-colors bg-white text-brand-blue shadow-sm";
+                    loginIdBtn.className = "px-3 py-1 text-xs font-bold rounded-full transition-colors text-gray-500 hover:text-gray-800";
+                } else {
+                    loginIdBtn.className = "px-3 py-1 text-xs font-bold rounded-full transition-colors bg-white text-brand-blue shadow-sm";
+                    loginEnBtn.className = "px-3 py-1 text-xs font-bold rounded-full transition-colors text-gray-500 hover:text-gray-800";
+                }
+            }
+
+            // Apply translations to data-i18n elements
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang][key]) {
+                    el.innerHTML = translations[lang][key];
+                }
+            });
+
+            // Apply translations to data-i18n-placeholder elements
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if (translations[lang][key]) {
+                    el.setAttribute('placeholder', translations[lang][key]);
+                }
+            });
+        }
 
         // ── State ──────────────────────────────────────────────
         let state = {
@@ -924,7 +1382,7 @@
                     localStorage.setItem('refresh_token', refreshToken);
                     return true;
                 }
-            } catch (e) {}
+            } catch (e) { }
             logout();
             return false;
         }
@@ -944,6 +1402,67 @@
             setTimeout(() => toast.remove(), 3000);
         }
 
+        // ── Banner Carousel ────────────────────────────────────
+        let carouselCurrentIndex = 0;
+        const carouselTotalSlides = 2;
+        let carouselTouchStartX = 0;
+        let carouselTouchEndX = 0;
+
+        function carouselUpdateDots() {
+            for (let i = 0; i < carouselTotalSlides; i++) {
+                const dot = document.getElementById(`carousel-dot-${i}`);
+                if (dot) {
+                    if (i === carouselCurrentIndex) {
+                        dot.className = "w-2.5 h-2.5 rounded-full bg-brand-blue transition-all cursor-pointer";
+                    } else {
+                        dot.className = "w-2.5 h-2.5 rounded-full bg-gray-300 transition-all cursor-pointer hover:bg-gray-400";
+                    }
+                }
+            }
+        }
+
+        function carouselUpdateSlide() {
+            const slidesContainer = document.getElementById('carousel-slides');
+            if (slidesContainer) {
+                slidesContainer.style.transform = `translateX(-${carouselCurrentIndex * 100}%)`;
+            }
+            carouselUpdateDots();
+        }
+
+        function carouselNext() {
+            carouselCurrentIndex = (carouselCurrentIndex + 1) % carouselTotalSlides;
+            carouselUpdateSlide();
+        }
+
+        function carouselPrev() {
+            carouselCurrentIndex = (carouselCurrentIndex - 1 + carouselTotalSlides) % carouselTotalSlides;
+            carouselUpdateSlide();
+        }
+
+        function carouselGoTo(index) {
+            if (index >= 0 && index < carouselTotalSlides) {
+                carouselCurrentIndex = index;
+                carouselUpdateSlide();
+            }
+        }
+
+        function initCarouselSwipe() {
+            const carousel = document.getElementById('banner-carousel');
+            if (carousel) {
+                carousel.addEventListener('touchstart', (e) => {
+                    carouselTouchStartX = e.changedTouches[0].screenX;
+                });
+                carousel.addEventListener('touchend', (e) => {
+                    carouselTouchEndX = e.changedTouches[0].screenX;
+                    if (carouselTouchStartX - carouselTouchEndX > 50) {
+                        carouselNext();
+                    } else if (carouselTouchEndX - carouselTouchStartX > 50) {
+                        carouselPrev();
+                    }
+                });
+            }
+        }
+
         // ── WebSocket Connection ───────────────────────────────
         function connectWebSocket() {
             if (ws && ws.readyState <= 1) return;
@@ -960,7 +1479,7 @@
                 try {
                     const data = JSON.parse(evt.data);
                     handleWsEvent(data);
-                } catch (e) {}
+                } catch (e) { }
             };
             ws.onclose = () => {
                 setTimeout(connectWebSocket, 3000);
@@ -987,6 +1506,9 @@
             // Set current date displays
             const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
             document.querySelectorAll('.current-date-display').forEach(el => el.textContent = dateStr);
+
+            // Apply saved language
+            setLanguage(currentLang);
 
             if (authToken) {
                 loadUserAndGo();
@@ -1020,10 +1542,34 @@
             if (settingsHomeEl) settingsHomeEl.textContent = name;
             const settingsLocEl = document.getElementById('settings-location');
             if (settingsLocEl) settingsLocEl.textContent = state.currentLocation;
+
+            // Populate profile details in menu
+            if (currentUser) {
+                const pdName = document.getElementById('profile-detail-name');
+                if (pdName) pdName.textContent = currentUser.full_name || name;
+
+                const pdEmail = document.getElementById('profile-detail-email');
+                if (pdEmail) pdEmail.textContent = currentUser.email || '-';
+            }
+            const pdLoc = document.getElementById('profile-detail-location');
+            if (pdLoc) pdLoc.textContent = state.currentLocation || 'Jakarta Selatan';
             // Update avatar
             document.querySelectorAll('img[alt="Profile"]').forEach(img => {
                 img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=fff&color=2563EB`;
             });
+
+            // Update language button states in settings
+            const settingsEnBtn = document.getElementById('settings-lang-en');
+            const settingsIdBtn = document.getElementById('settings-lang-id');
+            if (settingsEnBtn && settingsIdBtn) {
+                if (currentLang === 'en') {
+                    settingsEnBtn.className = "px-3 py-1 text-xs font-bold rounded transition-colors bg-white text-brand-blue shadow-sm";
+                    settingsIdBtn.className = "px-3 py-1 text-xs font-bold rounded transition-colors text-gray-500 hover:text-gray-800";
+                } else {
+                    settingsIdBtn.className = "px-3 py-1 text-xs font-bold rounded transition-colors bg-white text-brand-blue shadow-sm";
+                    settingsEnBtn.className = "px-3 py-1 text-xs font-bold rounded transition-colors text-gray-500 hover:text-gray-800";
+                }
+            }
         }
 
         async function loadSystemStatus() {
@@ -1035,7 +1581,7 @@
                         // Update weather widget with actual sensor data
                     }
                 }
-            } catch (e) {}
+            } catch (e) { }
         }
 
         // ── Navigation ─────────────────────────────────────────
@@ -1067,6 +1613,9 @@
                 nav.classList.add('md:flex');
                 if (fab) fab.classList.remove('hidden');
                 updateNavStyles(pageId);
+                if (pageId === 'home') {
+                    setTimeout(initCarouselSwipe, 100);
+                }
             }
             window.scrollTo(0, 0);
         }
@@ -1202,10 +1751,14 @@
             kitchen: { icon: 'fa-utensils', color: 'bg-red-100 text-red-500' },
             bathroom: { icon: 'fa-bath', color: 'bg-teal-100 text-teal-500' },
             garage: { icon: 'fa-car', color: 'bg-gray-200 text-gray-600' },
+            studio: { icon: 'fa-microphone', color: 'bg-purple-100 text-purple-500' },
             kamar: { icon: 'fa-bed', color: 'bg-purple-100 text-purple-500' },
             dapur: { icon: 'fa-utensils', color: 'bg-red-100 text-red-500' },
             'ruang-tamu': { icon: 'fa-couch', color: 'bg-orange-100 text-orange-500' },
             'ruang-rapat': { icon: 'fa-briefcase', color: 'bg-indigo-100 text-indigo-500' },
+            office: { icon: 'fa-briefcase', color: 'bg-slate-100 text-slate-600' },
+            dining: { icon: 'fa-utensils', color: 'bg-yellow-100 text-yellow-600' },
+            basement: { icon: 'fa-vault', color: 'bg-gray-600 text-gray-100' },
         };
 
         function getRoomMeta(room) {
@@ -1235,7 +1788,7 @@
                 const data = await res.json();
                 state.rooms = data.items || [];
                 renderDashboardRooms();
-            } catch (e) {}
+            } catch (e) { }
         }
 
         function renderDashboardRooms(searchQuery = '') {
@@ -1278,7 +1831,7 @@
 
             if (!searchQuery) {
                 container.innerHTML += `
-                    <div onclick="openModal('modal-add-room')" class="rounded-3xl p-5 border-2 border-dashed border-gray-300 cursor-pointer flex flex-col items-center justify-center text-gray-500 hover:bg-gray-100 hover:border-brand-blue hover:text-brand-blue transition-all duration-300 min-h-[160px] group">
+                    <div onclick="openModal('modal-add-room')" class="bg-white/70 backdrop-blur-sm rounded-3xl p-5 border-2 border-dashed border-gray-300 cursor-pointer flex flex-col items-center justify-center text-gray-500 hover:bg-gray-100 hover:border-brand-blue hover:text-brand-blue transition-all duration-300 min-h-[160px] group">
                         <div class="w-12 h-12 rounded-2xl bg-gray-100 group-hover:bg-blue-100 flex items-center justify-center mb-3 transition-colors">
                             <i class="fas fa-plus text-xl group-hover:text-brand-blue transition-colors"></i>
                         </div>
@@ -1294,7 +1847,7 @@
         // ── Open Room (load devices from backend) ──────────────
         async function openRoom(roomId) {
             state.currentRoomUUID = roomId;
-            navigate('room');
+            openModal('modal-room-detail');
             await loadRoomDevices(roomId);
         }
 
@@ -1363,7 +1916,7 @@
                             </div>
                         </div>
                         <div class="flex flex-col items-end gap-1">
-                            <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in cursor-pointer" onclick="toggleDevice('${device.device_id}', ${isOn})">
+                            <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in cursor-pointer" onclick="toggleDevice(event, '${device.device_id}', ${isOn})">
                                 <div class="absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none transition-all duration-300 z-10 top-0 ${checkboxStyle}"></div>
                                 <div class="block overflow-hidden h-6 rounded-full transition-colors duration-300 ${labelStyle}"></div>
                             </div>
@@ -1382,7 +1935,12 @@
         }
 
         // ── Toggle Device (Backend Command) ────────────────────
-        async function toggleDevice(deviceId, currentlyOn) {
+        // 🔵 Toggle Device (Backend Command) 🔵
+        async function toggleDevice(event, deviceId, currentlyOn) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
             const action = currentlyOn ? 'turn_off' : 'turn_on';
             // Optimistic UI update
             const card = document.querySelector(`[data-device-id="${deviceId}"]`);
@@ -1447,6 +2005,124 @@
             } catch (e) {
                 showToast('Connection error', 'error');
             }
+        }
+
+        // ── Add Routine ──────────────
+        async function openAddRoutineModal() {
+            const roomSelect = document.getElementById('new-routine-room');
+            roomSelect.innerHTML = '';
+
+            if (state.rooms && state.rooms.length > 0) {
+                state.rooms.forEach(r => {
+                    const opt = document.createElement('option');
+                    opt.value = r.id;
+                    opt.textContent = r.name;
+                    roomSelect.appendChild(opt);
+                });
+                await updateRoutineDevices(state.rooms[0].id);
+            } else {
+                roomSelect.innerHTML = '<option value="">Tidak ada kamar</option>';
+                document.getElementById('new-routine-device').innerHTML = '<p class="text-sm text-gray-500 p-2">Tidak ada perangkat</p>';
+            }
+
+            openModal('modal-add-routine');
+            // Add slide and fade animation
+            setTimeout(() => {
+                const content = document.getElementById('modal-add-routine-content');
+                if (content) {
+                    content.classList.remove('translate-y-8', 'opacity-0');
+                    content.classList.add('translate-y-0', 'opacity-100');
+                }
+            }, 10);
+        }
+
+        async function updateRoutineDevices(roomId) {
+            const container = document.getElementById('new-routine-device');
+            container.innerHTML = '<div class="text-sm text-gray-500 p-2">Memuat perangkat...</div>';
+
+            try {
+                const res = await api('GET', `/rooms/${roomId}`);
+                if (!res.ok) throw new Error('Failed');
+                const room = await res.json();
+                const devices = room.devices || [];
+
+                if (devices.length === 0) {
+                    container.innerHTML = '<p class="text-sm text-gray-500 p-2">Kamar ini belum memiliki perangkat.</p>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                devices.forEach(d => {
+                    // Turn On option
+                    container.insertAdjacentHTML('beforeend', `
+                        <label class="group relative flex items-center justify-between p-4 bg-white border border-gray-100 shadow-sm rounded-2xl cursor-pointer hover:shadow-md hover:border-brand-blue/30 transition-all">
+                            <input type="checkbox" name="routine-devices" value="Nyalakan ${d.name}" class="peer sr-only">
+                            <div class="absolute inset-0 bg-brand-blue/5 opacity-0 peer-checked:opacity-100 rounded-2xl transition-all"></div>
+                            <div class="absolute inset-0 border-2 border-transparent peer-checked:border-brand-blue rounded-2xl transition-all"></div>
+                            <span class="relative z-10 font-bold text-gray-700 peer-checked:text-brand-blue transition-colors">Nyalakan ${d.name}</span>
+                            <div class="relative z-10 w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center peer-checked:border-brand-blue peer-checked:bg-brand-blue transition-all">
+                                <i class="fas fa-check text-white text-xs opacity-0 peer-checked:opacity-100 scale-50 peer-checked:scale-100 transition-all"></i>
+                            </div>
+                        </label>
+                    `);
+                    // Turn Off option
+                    container.insertAdjacentHTML('beforeend', `
+                        <label class="group relative flex items-center justify-between p-4 bg-white border border-gray-100 shadow-sm rounded-2xl cursor-pointer hover:shadow-md hover:border-brand-blue/30 transition-all">
+                            <input type="checkbox" name="routine-devices" value="Matikan ${d.name}" class="peer sr-only">
+                            <div class="absolute inset-0 bg-brand-blue/5 opacity-0 peer-checked:opacity-100 rounded-2xl transition-all"></div>
+                            <div class="absolute inset-0 border-2 border-transparent peer-checked:border-brand-blue rounded-2xl transition-all"></div>
+                            <span class="relative z-10 font-bold text-gray-700 peer-checked:text-brand-blue transition-colors">Matikan ${d.name}</span>
+                            <div class="relative z-10 w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center peer-checked:border-brand-blue peer-checked:bg-brand-blue transition-all">
+                                <i class="fas fa-check text-white text-xs opacity-0 peer-checked:opacity-100 scale-50 peer-checked:scale-100 transition-all"></i>
+                            </div>
+                        </label>
+                    `);
+                });
+            } catch (e) {
+                container.innerHTML = '<p class="text-sm text-red-500 p-2">Gagal memuat perangkat.</p>';
+            }
+        }
+
+        function submitAddRoutine(e) {
+            e.preventDefault();
+            const name = document.getElementById('new-routine-name').value.trim();
+            const room = document.getElementById('new-routine-room');
+            const roomText = room.options[room.selectedIndex].text;
+            const time = document.getElementById('new-routine-time').value;
+
+            const deviceCheckboxes = document.querySelectorAll('input[name="routine-devices"]:checked');
+            const deviceTexts = Array.from(deviceCheckboxes).map(cb => cb.value);
+            const deviceText = deviceTexts.length > 0 ? deviceTexts.join(', ') : 'Tidak ada aksi';
+
+            if (!name || !time) return;
+
+            const routineHTML = `
+                <div class="routine-card bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex justify-between items-center hover:shadow-md transition-shadow cursor-pointer"
+                    onclick="this.querySelector('.toggle-checkbox').click()">
+                    <div class="flex items-start gap-4">
+                        <div class="mt-1 font-bold text-xl text-gray-800">${time}</div>
+                        <div>
+                            <h3 class="font-bold text-lg text-gray-800">${name}</h3>
+                            <p class="text-sm text-gray-500 line-clamp-1">${roomText}: ${deviceText}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in"
+                            onclick="event.stopPropagation()">
+                            <input type="checkbox" checked
+                                class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0" />
+                            <label
+                                class="toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300"></label>
+                        </div>
+                        <button onclick="event.stopPropagation(); this.closest('.routine-card').remove();" class="text-gray-400 hover:text-red-500 transition-colors p-1" title="Hapus">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('routines-list').insertAdjacentHTML('afterbegin', routineHTML);
+            closeModal('modal-add-routine');
         }
 
         // ── Add Device (Backend) ───────────────────────────────
@@ -1645,6 +2321,9 @@
                 showToast('Reset failed', 'error');
             }
         }
+
+
+
     </script>
 </body>
 

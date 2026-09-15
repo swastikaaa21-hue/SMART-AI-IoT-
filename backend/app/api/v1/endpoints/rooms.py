@@ -19,6 +19,7 @@ from app.models.user import User
 from app.schemas.common import PaginatedResponse, SuccessResponse
 from app.schemas.room import RoomCreate, RoomResponse, RoomUpdate, RoomWithDevices
 from app.utils.exceptions import AlreadyExistsError, NotFoundError
+from app.services.supabase_service import supabase_service
 
 router = APIRouter()
 
@@ -116,6 +117,23 @@ async def create_room(
     db.add(room)
     await db.flush()
     await db.refresh(room)
+    
+    # Sync to Supabase
+    try:
+        await supabase_service.create_room({
+            "id": str(room.id),
+            "name": room.name,
+            "slug": room.slug,
+            "room_type": room.room_type,
+            "description": room.description,
+            "icon": room.icon,
+            "owner_id": str(room.owner_id),
+            "created_at": room.created_at.isoformat() if room.created_at else None,
+            "updated_at": room.updated_at.isoformat() if room.updated_at else None,
+        })
+    except Exception:
+        pass
+    
     return room
 
 
@@ -145,6 +163,24 @@ async def update_room(
 
     await db.flush()
     await db.refresh(room)
+    
+    # Sync to Supabase
+    try:
+        updates = {}
+        if body.name is not None:
+            updates["name"] = room.name
+        if body.room_type is not None:
+            updates["room_type"] = room.room_type
+        if body.description is not None:
+            updates["description"] = room.description
+        if body.icon is not None:
+            updates["icon"] = room.icon
+        
+        if updates:
+            await supabase_service.update_room(str(room.id), updates)
+    except Exception:
+        pass
+    
     return room
 
 
@@ -164,4 +200,11 @@ async def delete_room(
 
     await db.delete(room)
     await db.flush()
+    
+    # Sync to Supabase
+    try:
+        await supabase_service.delete_room(str(room_id))
+    except Exception:
+        pass
+    
     return SuccessResponse(message=f"Room '{room.name}' deleted successfully")

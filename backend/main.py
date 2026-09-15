@@ -39,6 +39,7 @@ from app.services.gemini_service import gemini_service
 from app.services.mqtt_handler import handle_device_status, handle_device_telemetry
 from app.services.mqtt_service import mqtt_service
 from app.services.websocket_manager import ws_manager
+from app.services.supabase_service import supabase_service
 
 logger = get_logger("main")
 
@@ -72,12 +73,18 @@ async def lifespan(app: FastAPI):
     # --- Startup ---
     # 1. Initialise Gemini AI
     gemini_service.initialise()
+    
+    # 2. Initialise Supabase
+    try:
+        supabase_service.initialize()
+    except Exception as e:
+        logger.warning("supabase_init_skipped", reason=str(e))
 
-    # 2. Register MQTT message handlers
+    # 3. Register MQTT message handlers
     mqtt_service.on_status(handle_device_status)
     mqtt_service.on_telemetry(handle_device_telemetry)
 
-    # 3. Connect to MQTT broker
+    # 4. Connect to MQTT broker
     await mqtt_service.connect()
 
     logger.info("app_startup_complete")
@@ -175,6 +182,7 @@ def create_app() -> FastAPI:
                 "gemini": "ready" if gemini_service._initialised else "not_configured",
                 "websocket": f"{ws_manager.active_count} connections",
                 "database": "configured",
+                "supabase": "connected" if supabase_service._initialized else "not_configured",
             },
         )
 

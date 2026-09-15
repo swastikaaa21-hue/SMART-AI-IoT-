@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from app.core.logging import get_logger
 from app.db.session import get_db
 from app.middleware.auth import get_current_user
 from app.models.chat import ChatMessage, ChatSession
@@ -31,7 +32,10 @@ from app.schemas.chat import (
 from app.schemas.common import PaginatedResponse, SuccessResponse
 from app.services.device_manager import device_manager
 from app.services.gemini_service import gemini_service
+from app.services.supabase_service import supabase_service
 from app.utils.exceptions import NotFoundError
+
+logger = get_logger("chat")
 
 router = APIRouter()
 
@@ -239,11 +243,17 @@ async def send_chat_message(
     execute IoT commands if needed.
     """
     # Get or create a chat session
+    # Handle user as dict (from Supabase) or object (from SQLAlchemy)
+    if isinstance(user, dict):
+        user_id = uuid.UUID(user["id"]) if isinstance(user["id"], str) else user["id"]
+    else:
+        user_id = user.id
+    
     if body.session_id:
         result = await db.execute(
             select(ChatSession).where(
                 ChatSession.id == body.session_id,
-                ChatSession.user_id == user.id,
+                ChatSession.user_id == user_id,
             )
         )
         session = result.scalar_one_or_none()
@@ -251,11 +261,24 @@ async def send_chat_message(
             raise NotFoundError("ChatSession", str(body.session_id))
     else:
         session = ChatSession(
-            user_id=user.id,
+            user_id=user_id,
             title=body.message[:50] + ("..." if len(body.message) > 50 else ""),
         )
         db.add(session)
         await db.flush()
+        await db.refresh(session)
+        
+        # Sync to Supabase - TEMPORARILY DISABLED FOR DEBUG
+        # try:
+        #     await supabase_service.create_chat_session({
+        #         "id": str(session.id),
+        #         "user_id": str(session.user_id),
+        #         "title": session.title,
+        #         "created_at": session.created_at.isoformat() if session.created_at else None,
+        #     })
+        # except Exception as e:
+        #     logger.warning("supabase_sync_failed", error=str(e))
+        #     pass
 
     # Save user message
     user_msg = ChatMessage(
@@ -265,6 +288,19 @@ async def send_chat_message(
     )
     db.add(user_msg)
     await db.flush()
+    await db.refresh(user_msg)
+    
+    # Sync to Supabase - TEMPORARILY DISABLED FOR DEBUG
+    # try:
+    #     await supabase_service.create_chat_message({
+    #         "id": str(user_msg.id),
+    #         "session_id": str(user_msg.session_id),
+    #         "role": user_msg.role,
+    #         "content": user_msg.content,
+    #         "created_at": user_msg.created_at.isoformat() if user_msg.created_at else None,
+    #     })
+    # except Exception:
+    #     pass
 
     # Create function executor bound to this db session
     async def executor(name: str, args: dict) -> dict:
@@ -295,10 +331,28 @@ async def send_chat_message(
     )
     db.add(assistant_msg)
     await db.flush()
+    await db.refresh(assistant_msg)
+    
+    # Sync to Supabase - TEMPORARILY DISABLED FOR DEBUG
+    # try:
+    #     await supabase_service.create_chat_message({
+    #         "id": str(assistant_msg.id),
+    #         "session_id": str(assistant_msg.session_id),
+    #         "role": assistant_msg.role,
+    #         "content": assistant_msg.content,
+    #         "function_call": assistant_msg.function_call,
+    #         "function_response": assistant_msg.function_response,
+    #         "created_at": assistant_msg.created_at.isoformat() if assistant_msg.created_at else None,
+    #     })
+    # except Exception:
+    #     pass
 
+    # Debug: Print before return
+    logger.info("chat_response_prep", session_type=str(type(session)), has_id=hasattr(session, 'id'))
+    
     return AIChatResponse(
         reply=ai_result["reply"],
-        session_id=session.id,
+        session_id=str(session.id),
         function_called=ai_result.get("function_called"),
         function_result=ai_result.get("function_result"),
         devices_affected=ai_result.get("devices_affected", []),
@@ -352,6 +406,18 @@ async def create_session(
     db.add(session)
     await db.flush()
     await db.refresh(session)
+    
+    # Sync to Supabase
+    try:
+        await supabase_service.create_chat_session({
+            "id": str(session.id),
+            "user_id": str(session.user_id),
+            "title": session.title,
+            "created_at": session.created_at.isoformat() if session.created_at else None,
+        })
+    except Exception:
+        pass
+    
     return session
 
 
@@ -403,4 +469,11 @@ async def delete_session(
 
     await db.delete(session)
     await db.flush()
+    
+    # Sync to Supabase
+    try:
+        await supabase_service.delete_chat_session(str(session_id))
+    except Exception:
+        pass
+    
     return SuccessResponse(message="Chat session deleted successfully")

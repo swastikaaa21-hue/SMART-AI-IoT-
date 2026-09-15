@@ -70,6 +70,11 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "json"
 
+    # ── Supabase ─────────────────────────────────────────────
+    SUPABASE_URL: str = ""
+    SUPABASE_KEY: str = ""
+    SUPABASE_SERVICE_KEY: str = ""
+
     # ── Validators ───────────────────────────────────────────
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod

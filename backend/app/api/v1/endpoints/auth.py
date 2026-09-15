@@ -1,14 +1,15 @@
 """
 Authentication endpoints: register, login, refresh, me.
+Now using Supabase as the primary database.
 """
 
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.security import OAuth2PasswordRequestForm
 
 from app.core.config import settings
 from app.core.security import (
@@ -18,22 +19,20 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
-from app.db.session import get_db
+from app.db.supabase_session import get_db
 from app.middleware.auth import get_current_user
-from app.models.user import User
 from app.schemas.user import (
     TokenRefreshRequest,
     TokenResponse,
     UserCreate,
-    UserLogin,
     UserResponse,
     UserUpdate,
 )
 from app.utils.exceptions import (
     AlreadyExistsError,
-    BadRequestError,
     UnauthorizedError,
 )
+from app.services.supabase_service import supabase_service
 
 router = APIRouter()
 
@@ -41,47 +40,51 @@ router = APIRouter()
 @router.post("/register", response_model=UserResponse, status_code=201)
 async def register(
     body: UserCreate,
-    db: AsyncSession = Depends(get_db),
-) -> User:
+    db = Depends(get_db),
+):
     """Register a new user account."""
     # Check for existing email
-    result = await db.execute(select(User).where(User.email == body.email))
-    if result.scalar_one_or_none():
+    existing = await supabase_service.get_user_by_email(body.email)
+    if existing:
         raise AlreadyExistsError("User", body.email)
 
-    user = User(
-        email=body.email,
-        hashed_password=hash_password(body.password),
-        full_name=body.full_name,
-    )
-    db.add(user)
-    await db.flush()
-    await db.refresh(user)
-    return user
+    user_id = str(uuid.uuid4()).replace("-", "")
+    now = datetime.now(timezone.utc).isoformat()
+    
+    user_data = {
+        "id": user_id,
+        "email": body.email,
+        "hashed_password": hash_password(body.password),
+        "full_name": body.full_name,
+        "is_active": True,
+        "is_superuser": False,
+        "created_at": now,
+        "updated_at": now,
+    }
+    
+    created_user = await supabase_service.create_user(user_data)
+    return UserResponse(**created_user)
 
-
-from fastapi.security import OAuth2PasswordRequestForm
 
 @router.post("/login", response_model=TokenResponse)
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db),
 ) -> dict:
     """Authenticate a user and return JWT tokens (Supports Swagger UI)."""
-    result = await db.execute(select(User).where(User.email == form_data.username))
-    user = result.scalar_one_or_none()
+    user = await supabase_service.get_user_by_email(form_data.username)
 
-    if not user or not verify_password(form_data.password, user.hashed_password):
+    if not user or not verify_password(form_data.password, user["hashed_password"]):
         raise UnauthorizedError("Invalid email or password")
 
-    if not user.is_active:
+    if not user.get("is_active", True):
         raise UnauthorizedError("Account is deactivated")
 
     access_token = create_access_token(
-        subject=str(user.id),
-        extra_claims={"email": user.email},
+        subject=str(user["id"]),
+        extra_claims={"email": user["email"]},
     )
-    refresh_token = create_refresh_token(subject=str(user.id))
+    refresh_token = create_refresh_token(subject=str(user["id"]))
 
     return {
         "access_token": access_token,
@@ -94,7 +97,7 @@ async def login(
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(
     body: TokenRefreshRequest,
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db),
 ) -> dict:
     """Refresh an access token using a valid refresh token."""
     try:
@@ -109,17 +112,16 @@ async def refresh_token(
     if not user_id:
         raise UnauthorizedError("Invalid token payload")
 
-    result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
-    user = result.scalar_one_or_none()
+    user = await supabase_service.get_user_by_id(user_id)
 
-    if not user or not user.is_active:
+    if not user or not user.get("is_active", True):
         raise UnauthorizedError("User not found or deactivated")
 
     access_token = create_access_token(
-        subject=str(user.id),
-        extra_claims={"email": user.email},
+        subject=str(user["id"]),
+        extra_claims={"email": user["email"]},
     )
-    new_refresh_token = create_refresh_token(subject=str(user.id))
+    new_refresh_token = create_refresh_token(subject=str(user["id"]))
 
     return {
         "access_token": access_token,
@@ -131,31 +133,35 @@ async def refresh_token(
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(
-    user: User = Depends(get_current_user),
-) -> User:
+    user: dict = Depends(get_current_user),
+) -> UserResponse:
     """Get the current authenticated user's profile."""
-    return user
+    return UserResponse(**user)
 
 
 @router.patch("/me", response_model=UserResponse)
 async def update_me(
     body: UserUpdate,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> User:
+    user: dict = Depends(get_current_user),
+    db = Depends(get_db),
+):
     """Update the current user's profile."""
-    if body.email and body.email != user.email:
-        result = await db.execute(select(User).where(User.email == body.email))
-        if result.scalar_one_or_none():
+    updates = {}
+    
+    if body.email and body.email != user["email"]:
+        existing = await supabase_service.get_user_by_email(body.email)
+        if existing:
             raise AlreadyExistsError("User", body.email)
-        user.email = body.email
+        updates["email"] = body.email
 
     if body.full_name is not None:
-        user.full_name = body.full_name
+        updates["full_name"] = body.full_name
 
     if body.password:
-        user.hashed_password = hash_password(body.password)
+        updates["hashed_password"] = hash_password(body.password)
 
-    await db.flush()
-    await db.refresh(user)
-    return user
+    if updates:
+        updated_user = await supabase_service.update_user(user["id"], updates)
+        return UserResponse(**updated_user)
+    
+    return UserResponse(**user)

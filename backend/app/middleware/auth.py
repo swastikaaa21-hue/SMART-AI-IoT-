@@ -2,21 +2,18 @@
 Authentication dependency for FastAPI.
 
 Extracts and validates JWT tokens from the Authorization header.
+Now using Supabase as the primary database.
 """
 
 from __future__ import annotations
 
-import uuid
-
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_token
-from app.db.session import get_db
-from app.models.user import User
+from app.db.supabase_session import get_db
+from app.services.supabase_service import supabase_service
 from app.utils.exceptions import UnauthorizedError
 
 oauth2_scheme = OAuth2PasswordBearer(
@@ -32,15 +29,15 @@ oauth2_scheme_optional = OAuth2PasswordBearer(
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
-    db: AsyncSession = Depends(get_db),
-) -> User:
+    db = Depends(get_db),
+) -> dict:
     """
     FastAPI dependency that extracts the current user from the JWT token.
 
     Usage::
 
         @router.get("/me")
-        async def me(user: User = Depends(get_current_user)):
+        async def me(user: dict = Depends(get_current_user)):
             return user
     """
     try:
@@ -56,18 +53,12 @@ async def get_current_user(
     if not user_id_str:
         raise UnauthorizedError("Token missing subject claim")
 
-    try:
-        user_id = uuid.UUID(user_id_str)
-    except ValueError:
-        raise UnauthorizedError("Invalid user ID in token")
-
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
+    user = await supabase_service.get_user_by_id(user_id_str)
 
     if not user:
         raise UnauthorizedError("User not found")
 
-    if not user.is_active:
+    if not user.get("is_active", True):
         raise UnauthorizedError("User account is deactivated")
 
     return user
@@ -75,8 +66,8 @@ async def get_current_user(
 
 async def get_current_user_optional(
     token: str | None = Depends(oauth2_scheme_optional),
-    db: AsyncSession = Depends(get_db),
-) -> User | None:
+    db = Depends(get_db),
+) -> dict | None:
     """
     Optional authentication dependency.
 
@@ -92,10 +83,10 @@ async def get_current_user_optional(
 
 
 async def get_superuser(
-    user: User = Depends(get_current_user),
-) -> User:
+    user: dict = Depends(get_current_user),
+) -> dict:
     """Dependency that requires superuser privileges."""
-    if not user.is_superuser:
+    if not user.get("is_superuser", False):
         from app.utils.exceptions import ForbiddenError
         raise ForbiddenError("Superuser privileges required")
     return user
