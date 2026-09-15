@@ -140,11 +140,12 @@ def create_app() -> FastAPI:
     # Request logging
     application.add_middleware(RequestLoggingMiddleware)
 
-    # CORS - allow all local and network origins for seamless frontend UI integration
+    # CORS - allow all origins for seamless frontend UI integration across Vercel & local
+    cors_origins = list(settings.BACKEND_CORS_ORIGINS) if isinstance(settings.BACKEND_CORS_ORIGINS, list) and settings.BACKEND_CORS_ORIGINS else ["*"]
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"] if settings.DEBUG else settings.BACKEND_CORS_ORIGINS,
-        allow_origin_regex=".*" if settings.DEBUG else None,
+        allow_origins=cors_origins,
+        allow_origin_regex=".*",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
