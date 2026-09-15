@@ -75,6 +75,12 @@ class Settings(BaseSettings):
     SUPABASE_KEY: str = ""
     SUPABASE_SERVICE_KEY: str = ""
 
+    @field_validator("SUPABASE_KEY", mode="before")
+    @classmethod
+    def resolve_supabase_key(cls, v: str, info: any) -> str:
+        # Prefer service key if provided or if key is publishable
+        return v
+
     # ── Validators ───────────────────────────────────────────
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod

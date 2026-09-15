@@ -32,15 +32,16 @@ class SupabaseService:
     def initialize(self) -> None:
         if self._initialized:
             return
-        if not settings.SUPABASE_URL or not settings.SUPABASE_KEY:
+        key = settings.SUPABASE_SERVICE_KEY or settings.SUPABASE_KEY
+        if not settings.SUPABASE_URL or not key:
             logger.warning("supabase_not_configured",
                          url_set=bool(settings.SUPABASE_URL),
-                         key_set=bool(settings.SUPABASE_KEY))
+                         key_set=bool(key))
             return
         try:
             # Clean URL: remove trailing /rest/v1/ or / if accidentally passed
             clean_url = re.sub(r"/rest/v1/?$", "", settings.SUPABASE_URL.rstrip("/"))
-            self._client = create_client(clean_url, settings.SUPABASE_KEY)
+            self._client = create_client(clean_url, key)
             self._initialized = True
             logger.info("supabase_initialized", url=clean_url)
         except Exception as e:
