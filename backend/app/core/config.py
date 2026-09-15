@@ -9,10 +9,10 @@ loaded automatically when present. Every downstream module imports the singleton
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import List
+from typing import Any, List, Tuple, Type
 
 from pydantic import field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, SettingsConfigDict, PydanticBaseSettingsSource
 
 
 class Settings(BaseSettings):
@@ -23,6 +23,7 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
+        env_parse_none_str="null,none,None",
     )
 
     # ── Application ──────────────────────────────────────────
@@ -86,15 +87,29 @@ class Settings(BaseSettings):
     @classmethod
     def assemble_cors_origins(cls, v: str | List[str]) -> List[str]:
         if isinstance(v, str):
+            if not v or v.strip() == "":
+                return []
             if v.startswith("["):
                 import json
                 return json.loads(v)
-            return [origin.strip() for origin in v.split(",")]
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
         return v
 
     @property
     def is_production(self) -> bool:
         return self.APP_ENV == "production"
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: Type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> Tuple[PydanticBaseSettingsSource, ...]:
+        # Skip JSON parsing for List fields in dotenv/env - let validator handle it
+        return (init_settings, env_settings, dotenv_settings, file_secret_settings)
 
 
 @lru_cache(maxsize=1)
