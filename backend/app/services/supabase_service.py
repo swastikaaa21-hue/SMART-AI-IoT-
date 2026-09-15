@@ -38,9 +38,11 @@ class SupabaseService:
                          key_set=bool(settings.SUPABASE_KEY))
             return
         try:
-            self._client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+            # Clean URL: remove trailing /rest/v1/ or / if accidentally passed
+            clean_url = re.sub(r"/rest/v1/?$", "", settings.SUPABASE_URL.rstrip("/"))
+            self._client = create_client(clean_url, settings.SUPABASE_KEY)
             self._initialized = True
-            logger.info("supabase_initialized", url=settings.SUPABASE_URL)
+            logger.info("supabase_initialized", url=clean_url)
         except Exception as e:
             logger.error("supabase_init_failed", error=str(e))
             raise
