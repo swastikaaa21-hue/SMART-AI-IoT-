@@ -179,12 +179,12 @@ async def send_chat_message(
     user_id = str(user["id"])
     now = datetime.now(timezone.utc).isoformat()
 
-    # Get or create chat session
+    # Get or create chat session (fallback seamlessly if session_id is stale/invalid)
+    session = None
     if body.session_id:
         session = await supabase_service.get_chat_session(str(body.session_id), user_id)
-        if not session:
-            raise NotFoundError("ChatSession", str(body.session_id))
-    else:
+
+    if not session:
         session_id = _gen_id()
         session = await supabase_service.create_chat_session({
             "id": session_id,
