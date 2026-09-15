@@ -71,6 +71,16 @@ async def lifespan(app: FastAPI):
     )
 
     # --- Startup ---
+    # 0. Ensure Database tables are created
+    try:
+        from app.db.session import engine, Base
+        import app.models  # noqa: F401
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("db_tables_created")
+    except Exception as e:
+        logger.warning("db_table_creation_failed", reason=str(e))
+
     # 1. Initialise Gemini AI
     gemini_service.initialise()
     
