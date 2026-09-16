@@ -18,6 +18,7 @@ class User(Base):
 
     rooms: Mapped[list["Room"]] = relationship("Room", back_populates="owner", cascade="all, delete-orphan", lazy="selectin")
     chat_sessions: Mapped[list["ChatSession"]] = relationship("ChatSession", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
+    schedules: Mapped[list["Schedule"]] = relationship("Schedule", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<User {self.email}>"

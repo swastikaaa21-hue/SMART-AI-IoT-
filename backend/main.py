@@ -40,6 +40,7 @@ from app.services.mqtt_handler import handle_device_status, handle_device_teleme
 from app.services.mqtt_service import mqtt_service
 from app.services.websocket_manager import ws_manager
 from app.services.supabase_service import supabase_service
+from app.services.scheduler_service import scheduler_service
 
 logger = get_logger("main")
 
@@ -100,6 +101,12 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("mqtt_connect_failed", reason=str(e))
 
+    # 5. Start scheduler service
+    try:
+        await scheduler_service.start()
+    except Exception as e:
+        logger.warning("scheduler_start_failed", reason=str(e))
+
     logger.info("app_startup_complete")
 
     yield
@@ -107,6 +114,7 @@ async def lifespan(app: FastAPI):
     # --- Shutdown ---
     logger.info("app_shutdown_starting")
 
+    await scheduler_service.stop()
     await mqtt_service.disconnect()
     gemini_service.clear_all_sessions()
 

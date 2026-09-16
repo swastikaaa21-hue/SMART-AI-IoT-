@@ -738,7 +738,7 @@
                         </button>
                     </div>
                     <div
-                        class="p-5 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors">
+                        class="p-5 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors" onclick="openModal('modal-show-password')">
                         <div class="flex items-center gap-4 text-gray-800 font-medium text-lg">
                             <i class="fas fa-key w-6 text-center text-xl text-gray-400"></i>
                             <span data-i18n="set_password">Kata Sandi</span>
@@ -864,19 +864,23 @@
                         <input type="text" id="new-routine-name" required placeholder="mis., Sleep"
                             class="w-full px-5 py-4 rounded-2xl bg-gray-50/80 border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-brand-blue focus:bg-white text-gray-800 font-medium placeholder-gray-400 transition-all shadow-inner">
                     </div>
-                    <!-- Room & Time side-by-side -->
+                    <!-- Room -->
+                    <div class="relative">
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Kamar</label>
+                        <select id="new-routine-room" onchange="updateRoutineDevices(this.value)"
+                            class="w-full px-5 py-4 rounded-2xl bg-gray-50/80 border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-brand-blue focus:bg-white text-gray-800 font-medium transition-all appearance-none cursor-pointer shadow-inner">
+                        </select>
+                    </div>
+                    <!-- Start & End Time -->
                     <div class="flex gap-4">
                         <div class="flex-1 relative">
-                            <label
-                                class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Kamar</label>
-                            <select id="new-routine-room" onchange="updateRoutineDevices(this.value)"
-                                class="w-full px-5 py-4 rounded-2xl bg-gray-50/80 border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-brand-blue focus:bg-white text-gray-800 font-medium transition-all appearance-none cursor-pointer shadow-inner">
-                            </select>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Jam Mulai</label>
+                            <input type="time" id="new-routine-time" required value="17:30"
+                                class="w-full px-5 py-4 rounded-2xl bg-gray-50/80 border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-brand-blue focus:bg-white text-gray-800 font-medium transition-all shadow-inner">
                         </div>
                         <div class="flex-1 relative">
-                            <label
-                                class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Jam</label>
-                            <input type="time" id="new-routine-time" required value="17:30"
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Jam Selesai (Opsional)</label>
+                            <input type="time" id="new-routine-end-time"
                                 class="w-full px-5 py-4 rounded-2xl bg-gray-50/80 border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-brand-blue focus:bg-white text-gray-800 font-medium transition-all shadow-inner">
                         </div>
                     </div>
@@ -995,6 +999,60 @@
                             data-i18n="save_btn">Simpan</span></button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal Show Password -->
+    <div id="modal-show-password"
+        class="fixed inset-0 z-[100] hidden items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 transition-opacity">
+        <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-800">Kata Sandi</h3>
+                <button onclick="closeModal('modal-show-password')"
+                    class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Kata Sandi Saat Ini</label>
+                    <div class="relative">
+                        <input type="password" id="current-password-display" readonly
+                            value="********"
+                            class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800">
+                        <button onclick="togglePasswordVisibility()" type="button"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-brand-blue">
+                            <i class="fas fa-eye" id="password-eye-icon"></i>
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Ubah Kata Sandi</label>
+                    <input type="password" id="new-password-input" placeholder="Kata sandi baru (min. 8 karakter)"
+                        class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-blue text-gray-800">
+                </div>
+                <button onclick="changePassword()"
+                    class="w-full py-3 rounded-xl font-semibold bg-brand-blue text-white shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition-all">
+                    Simpan Perubahan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Schedule Detail -->
+    <div id="modal-schedule-detail"
+        class="fixed inset-0 z-[100] hidden items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 transition-opacity">
+        <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-800">Detail Jadwal</h3>
+                <button onclick="closeModal('modal-schedule-detail')"
+                    class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4" id="schedule-detail-content">
+                <!-- Content populated by JS -->
+            </div>
         </div>
     </div>
 
@@ -1519,7 +1577,7 @@
             if (authToken) {
                 loadUserAndGo();
             } else {
-                navigate('splash');
+                navigate('login');  // Skip splash, go straight to login
             }
         });
 
@@ -1535,10 +1593,10 @@
                     connectWebSocket();
                     loadSystemStatus();
                 } else {
-                    navigate('splash');
+                    navigate('login');  // Skip splash on auth failure
                 }
             } catch (e) {
-                navigate('splash');
+                navigate('login');  // Skip splash on error
             }
         }
 
@@ -1621,6 +1679,9 @@
                 updateNavStyles(pageId);
                 if (pageId === 'home') {
                     setTimeout(initCarouselSwipe, 100);
+                }
+                if (pageId === 'schedule') {
+                    loadSchedules();
                 }
             }
             window.scrollTo(0, 0);
@@ -1815,6 +1876,7 @@
             filtered.forEach(room => {
                 const meta = getRoomMeta(room);
                 const activeCount = room.active_devices_count ?? 0;
+                const totalCount = room.devices?.length ?? 0;
                 const isActive = activeCount > 0;
                 const cardClass = isActive
                     ? 'bg-[#EBFBF0] text-gray-900 border-[#B7F0C8] shadow-sm hover:border-[#86E7A4]'
@@ -1823,13 +1885,26 @@
                     ? 'text-[#22C55E] font-semibold'
                     : 'text-gray-400 font-medium';
 
+                // Device preview list (max 3 devices)
+                const devicePreview = (room.devices || []).slice(0, 3).map(d => {
+                    const icon = getDeviceIcon(d.device_type);
+                    const stateColor = d.state === 'on' ? 'text-green-500' : 'text-gray-400';
+                    return `<span class="${stateColor}" title="${d.name}"><i class="fas ${icon} text-xs"></i></span>`;
+                }).join(' ');
+
                 const cardHTML = `
-                    <div onclick="openRoom('${room.id}')" class="rounded-3xl p-5 border cursor-pointer transition-all duration-300 ${cardClass} relative overflow-hidden group">
-                        <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${meta.color}">
-                            <i class="fas ${meta.icon} text-xl"></i>
+                    <div class="rounded-3xl p-5 border cursor-pointer transition-all duration-300 ${cardClass} relative overflow-hidden group">
+                        <div onclick="openRoom('${room.id}')" class="w-full">
+                            <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${meta.color}">
+                                <i class="fas ${meta.icon} text-xl"></i>
+                            </div>
+                            <h3 class="font-bold text-lg leading-tight mb-1 transition-colors group-hover:text-brand-blue">${room.name}</h3>
+                            <p class="text-sm ${statusClass} mb-2">${activeCount}/${totalCount} active</p>
+                            ${devicePreview ? `<div class="flex gap-2 mb-2">${devicePreview}</div>` : ''}
                         </div>
-                        <h3 class="font-bold text-lg leading-tight mb-1 transition-colors group-hover:text-brand-blue">${room.name}</h3>
-                        <p class="text-sm ${statusClass}">${activeCount} active</p>
+                        <button onclick="event.stopPropagation(); openAddDeviceForRoom('${room.id}')" class="mt-2 w-full py-2 text-xs font-semibold rounded-lg border-2 border-dashed border-gray-300 text-gray-500 hover:border-brand-blue hover:text-brand-blue transition-all">
+                            <i class="fas fa-plus"></i> Add Device
+                        </button>
                     </div>
                 `;
                 container.innerHTML += cardHTML;
@@ -1910,24 +1985,83 @@
                 if (device.brightness != null) extraInfo.push(`Brightness: ${device.brightness}%`);
                 const extraStr = extraInfo.length ? ` &bull; ${extraInfo.join(' &bull; ')}` : '';
 
+                // Device controls based on type
+                let deviceControls = '';
+                if (device.device_type.toLowerCase() === 'ac' && isOn) {
+                    const targetTemp = device.target_temperature || 24;
+                    const acMode = device.ac_mode || 'cool';
+                    const fanSpeed = device.fan_speed || 3;
+                    deviceControls = `
+                        <div class="mt-3 pt-3 border-t border-gray-100 space-y-2">
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="text-gray-500">Target Temp:</span>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="event.stopPropagation(); adjustTemp('${device.device_id}', -1, ${targetTemp})" class="w-6 h-6 rounded bg-gray-100 hover:bg-brand-blue hover:text-white transition-colors">-</button>
+                                    <span class="font-bold text-brand-blue w-8 text-center">${targetTemp}°C</span>
+                                    <button onclick="event.stopPropagation(); adjustTemp('${device.device_id}', 1, ${targetTemp})" class="w-6 h-6 rounded bg-gray-100 hover:bg-brand-blue hover:text-white transition-colors">+</button>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="text-gray-500">Mode:</span>
+                                <select onchange="setACMode('${device.device_id}', this.value)" class="text-xs px-2 py-1 rounded border border-gray-200" onclick="event.stopPropagation()">
+                                    <option value="cool" ${acMode === 'cool' ? 'selected' : ''}>Cool</option>
+                                    <option value="heat" ${acMode === 'heat' ? 'selected' : ''}>Heat</option>
+                                    <option value="fan" ${acMode === 'fan' ? 'selected' : ''}>Fan</option>
+                                    <option value="dry" ${acMode === 'dry' ? 'selected' : ''}>Dry</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="text-gray-500">Fan Speed:</span>
+                                <input type="range" min="1" max="5" value="${fanSpeed}" onchange="setFanSpeed('${device.device_id}', this.value)" onclick="event.stopPropagation()" class="w-20" />
+                                <span class="font-bold">${fanSpeed}</span>
+                            </div>
+                        </div>
+                    `;
+                } else if (device.device_type.toLowerCase() === 'light' && isOn) {
+                    const brightness = device.brightness || 100;
+                    deviceControls = `
+                        <div class="mt-3 pt-3 border-t border-gray-100">
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="text-gray-500">Brightness:</span>
+                                <input type="range" min="0" max="100" value="${brightness}" onchange="setBrightness('${device.device_id}', this.value)" onclick="event.stopPropagation()" class="w-32" />
+                                <span class="font-bold">${brightness}%</span>
+                            </div>
+                        </div>
+                    `;
+                } else if (device.device_type.toLowerCase() === 'fan' && isOn) {
+                    const fanSpeed = device.fan_speed || 3;
+                    deviceControls = `
+                        <div class="mt-3 pt-3 border-t border-gray-100">
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="text-gray-500">Speed:</span>
+                                <input type="range" min="1" max="5" value="${fanSpeed}" onchange="setFanSpeed('${device.device_id}', this.value)" onclick="event.stopPropagation()" class="w-32" />
+                                <span class="font-bold">${fanSpeed}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
                 container.innerHTML += `
-                    <div class="bg-white rounded-3xl p-5 flex items-center justify-between shadow-sm border border-gray-100 transition-all hover:shadow-md" data-device-id="${device.device_id}">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-2xl flex items-center justify-center ${isOn ? 'bg-blue-100 text-brand-blue' : 'bg-gray-100 text-gray-500'} transition-colors">
-                                <i class="fas ${icon} text-xl"></i>
+                    <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 transition-all hover:shadow-md" data-device-id="${device.device_id}">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-2xl flex items-center justify-center ${isOn ? 'bg-blue-100 text-brand-blue' : 'bg-gray-100 text-gray-500'} transition-colors">
+                                    <i class="fas ${icon} text-xl"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-gray-800">${device.name}</h4>
+                                    <p class="text-xs font-medium ${isOn ? 'text-brand-blue' : 'text-gray-400'} uppercase tracking-wider mt-1">${device.device_type} ${isOn ? 'Active' : 'Standby'}${extraStr}</p>
+                                </div>
                             </div>
-                            <div>
-                                <h4 class="font-bold text-gray-800">${device.name}</h4>
-                                <p class="text-xs font-medium ${isOn ? 'text-brand-blue' : 'text-gray-400'} uppercase tracking-wider mt-1">${device.device_type} ${isOn ? 'Active' : 'Standby'}${extraStr}</p>
+                            <div class="flex flex-col items-end gap-1">
+                                <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in cursor-pointer" onclick="toggleDevice(event, '${device.device_id}', ${isOn})">
+                                    <div class="absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none transition-all duration-300 z-10 top-0 ${checkboxStyle}"></div>
+                                    <div class="block overflow-hidden h-6 rounded-full transition-colors duration-300 ${labelStyle}"></div>
+                                </div>
+                                <span class="text-xs font-bold text-gray-400 uppercase">${isOn ? 'on' : 'off'}</span>
                             </div>
                         </div>
-                        <div class="flex flex-col items-end gap-1">
-                            <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in cursor-pointer" onclick="toggleDevice(event, '${device.device_id}', ${isOn})">
-                                <div class="absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none transition-all duration-300 z-10 top-0 ${checkboxStyle}"></div>
-                                <div class="block overflow-hidden h-6 rounded-full transition-colors duration-300 ${labelStyle}"></div>
-                            </div>
-                            <span class="text-xs font-bold text-gray-400 uppercase">${isOn ? 'on' : 'off'}</span>
-                        </div>
+                        ${deviceControls}
                     </div>`;
             });
 
@@ -1969,6 +2103,56 @@
             loadRooms();
         }
 
+        // Device control functions
+        async function adjustTemp(deviceId, delta, currentTemp) {
+            const newTemp = Math.max(16, Math.min(30, currentTemp + delta));
+            try {
+                await api('POST', `/commands/${deviceId}`, { 
+                    action: 'turn_on', 
+                    target_temperature: newTemp 
+                });
+                if (state.currentRoomUUID) await loadRoomDevices(state.currentRoomUUID);
+            } catch (e) {
+                showToast('Failed to adjust temperature', 'error');
+            }
+        }
+
+        async function setACMode(deviceId, mode) {
+            try {
+                await api('POST', `/commands/${deviceId}`, { 
+                    action: 'turn_on', 
+                    ac_mode: mode 
+                });
+                if (state.currentRoomUUID) await loadRoomDevices(state.currentRoomUUID);
+            } catch (e) {
+                showToast('Failed to change AC mode', 'error');
+            }
+        }
+
+        async function setFanSpeed(deviceId, speed) {
+            try {
+                await api('POST', `/commands/${deviceId}`, { 
+                    action: 'turn_on', 
+                    fan_speed: parseInt(speed) 
+                });
+                if (state.currentRoomUUID) await loadRoomDevices(state.currentRoomUUID);
+            } catch (e) {
+                showToast('Failed to adjust fan speed', 'error');
+            }
+        }
+
+        async function setBrightness(deviceId, brightness) {
+            try {
+                await api('POST', `/commands/${deviceId}`, { 
+                    action: 'turn_on', 
+                    value: parseInt(brightness) 
+                });
+                if (state.currentRoomUUID) await loadRoomDevices(state.currentRoomUUID);
+            } catch (e) {
+                showToast('Failed to adjust brightness', 'error');
+            }
+        }
+
         // ── Modals ─────────────────────────────────────────────
         function openModal(id) {
             const modal = document.getElementById(id);
@@ -1982,6 +2166,12 @@
                 const form = modal.querySelector('form');
                 if (form) form.reset();
             }
+        }
+
+        // Open add device modal with room pre-selected
+        function openAddDeviceForRoom(roomId) {
+            state.currentRoomUUID = roomId;
+            openModal('modal-add-device');
         }
 
         // ── Add Room (Backend) ─────────────────────────────────
@@ -2089,46 +2279,128 @@
             }
         }
 
+        // ── Load Schedules from Backend ────────────────────────
+        async function loadSchedules() {
+            try {
+                const res = await api('GET', '/schedules');
+                if (res.ok) {
+                    const schedules = await res.json();
+                    renderSchedules(schedules);
+                }
+            } catch (e) {
+                console.error('Failed to load schedules', e);
+            }
+        }
+
+        function renderSchedules(schedules) {
+            const container = document.getElementById('routines-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            schedules.forEach(schedule => {
+                const time = schedule.start_time;
+                const endTime = schedule.end_time ? ` - ${schedule.end_time}` : '';
+                const action = schedule.action === 'turn_on' ? 'Nyalakan' : 'Matikan';
+                
+                const routineHTML = `
+                    <div class="routine-card bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex justify-between items-center hover:shadow-md transition-shadow cursor-pointer"
+                        onclick="openScheduleDetail('${schedule.id}')">
+                        <div class="flex items-start gap-4">
+                            <div class="mt-1 font-bold text-xl text-gray-800">${time}${endTime}</div>
+                            <div>
+                                <h3 class="font-bold text-lg text-gray-800">${schedule.name}</h3>
+                                <p class="text-sm text-gray-500 line-clamp-1">${schedule.room_name}: ${action} ${schedule.device_name}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in"
+                                onclick="event.stopPropagation(); toggleSchedule('${schedule.id}', ${schedule.is_active})">
+                                <input type="checkbox" ${schedule.is_active ? 'checked' : ''}
+                                    class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0" />
+                                <label
+                                    class="toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300"></label>
+                            </div>
+                            <button onclick="event.stopPropagation(); deleteSchedule('${schedule.id}')" class="text-gray-400 hover:text-red-500 transition-colors p-1" title="Hapus">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += routineHTML;
+            });
+        }
+
+        async function toggleSchedule(scheduleId, currentlyActive) {
+            try {
+                await api('PATCH', `/schedules/${scheduleId}`, { is_active: !currentlyActive });
+                loadSchedules();
+            } catch (e) {
+                showToast('Failed to toggle schedule', 'error');
+            }
+        }
+
+        async function deleteSchedule(scheduleId) {
+            if (!confirm('Delete this schedule?')) return;
+            try {
+                await api('DELETE', `/schedules/${scheduleId}`);
+                showToast('Schedule deleted', 'success');
+                loadSchedules();
+            } catch (e) {
+                showToast('Failed to delete schedule', 'error');
+            }
+        }
+
+        function openScheduleDetail(scheduleId) {
+            // TODO: Open modal with schedule details
+            showToast('Schedule detail modal coming soon', 'info');
+        }
+
         function submitAddRoutine(e) {
             e.preventDefault();
             const name = document.getElementById('new-routine-name').value.trim();
-            const room = document.getElementById('new-routine-room');
-            const roomText = room.options[room.selectedIndex].text;
-            const time = document.getElementById('new-routine-time').value;
+            const roomId = document.getElementById('new-routine-room').value;
+            const startTime = document.getElementById('new-routine-time').value;
+            const endTime = document.getElementById('new-routine-end-time')?.value || null;
 
             const deviceCheckboxes = document.querySelectorAll('input[name="routine-devices"]:checked');
-            const deviceTexts = Array.from(deviceCheckboxes).map(cb => cb.value);
-            const deviceText = deviceTexts.length > 0 ? deviceTexts.join(', ') : 'Tidak ada aksi';
+            
+            if (!name || !startTime || deviceCheckboxes.length === 0) {
+                showToast('Please fill all fields and select at least one device action', 'error');
+                return;
+            }
 
-            if (!name || !time) return;
+            // Create schedule for each selected device action
+            const promises = Array.from(deviceCheckboxes).map(async (cb) => {
+                const actionText = cb.value; // e.g., "Nyalakan lampu_1"
+                const action = actionText.startsWith('Nyalakan') ? 'turn_on' : 'turn_off';
+                const deviceName = actionText.replace('Nyalakan ', '').replace('Matikan ', '');
+                
+                // Find device ID from name
+                const device = state.currentRoomDevices?.find(d => d.name === deviceName);
+                if (!device) return;
 
-            const routineHTML = `
-                <div class="routine-card bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex justify-between items-center hover:shadow-md transition-shadow cursor-pointer"
-                    onclick="this.querySelector('.toggle-checkbox').click()">
-                    <div class="flex items-start gap-4">
-                        <div class="mt-1 font-bold text-xl text-gray-800">${time}</div>
-                        <div>
-                            <h3 class="font-bold text-lg text-gray-800">${name}</h3>
-                            <p class="text-sm text-gray-500 line-clamp-1">${roomText}: ${deviceText}</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in"
-                            onclick="event.stopPropagation()">
-                            <input type="checkbox" checked
-                                class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0" />
-                            <label
-                                class="toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300"></label>
-                        </div>
-                        <button onclick="event.stopPropagation(); this.closest('.routine-card').remove();" class="text-gray-400 hover:text-red-500 transition-colors p-1" title="Hapus">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
+                try {
+                    await api('POST', '/schedules', {
+                        name,
+                        room_id: roomId,
+                        device_id: device.device_id,
+                        action,
+                        start_time: startTime,
+                        end_time: endTime,
+                        days: '1,2,3,4,5,6,7'
+                    });
+                } catch (e) {
+                    console.error('Failed to create schedule', e);
+                }
+            });
 
-            document.getElementById('routines-list').insertAdjacentHTML('afterbegin', routineHTML);
-            closeModal('modal-add-routine');
+            Promise.all(promises).then(() => {
+                showToast('Routines created!', 'success');
+                closeModal('modal-add-routine');
+                loadSchedules();
+            }).catch(() => {
+                showToast('Some routines failed to create', 'error');
+            });
         }
 
         // ── Add Device (Backend) ───────────────────────────────
@@ -2311,7 +2583,7 @@
             if (menu) menu.classList.add('hidden');
             const chevron = document.getElementById('profile-chevron');
             if (chevron) chevron.style.transform = 'rotate(0deg)';
-            navigate('splash');
+            navigate('login');  // Go to login instead of splash
         }
 
         async function resetData() {
@@ -2325,6 +2597,90 @@
                 navigate('home');
             } catch (e) {
                 showToast('Reset failed', 'error');
+            }
+        }
+
+        // Password modal functions
+        function togglePasswordVisibility() {
+            const input = document.getElementById('current-password-display');
+            const icon = document.getElementById('password-eye-icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                input.value = '********'; // Still masked, real password not shown for security
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
+
+        async function changePassword() {
+            const newPass = document.getElementById('new-password-input').value.trim();
+            if (!newPass) {
+                showToast('Enter new password', 'error');
+                return;
+            }
+            if (newPass.length < 8) {
+                showToast('Password must be at least 8 characters', 'error');
+                return;
+            }
+
+            try {
+                const res = await api('PATCH', '/auth/me', { password: newPass });
+                if (res.ok) {
+                    showToast('Password updated successfully!', 'success');
+                    closeModal('modal-show-password');
+                    document.getElementById('new-password-input').value = '';
+                } else {
+                    showToast('Failed to update password', 'error');
+                }
+            } catch (e) {
+                showToast('Connection error', 'error');
+            }
+        }
+
+        // Schedule detail modal
+        async function openScheduleDetail(scheduleId) {
+            try {
+                const res = await api('GET', `/schedules/${scheduleId}`);
+                if (res.ok) {
+                    const schedule = await res.json();
+                    const container = document.getElementById('schedule-detail-content');
+                    const endTime = schedule.end_time ? ` - ${schedule.end_time}` : '';
+                    const action = schedule.action === 'turn_on' ? 'Nyalakan' : 'Matikan';
+                    
+                    container.innerHTML = `
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Nama Jadwal</label>
+                                <p class="text-lg font-bold text-gray-800 mt-1">${schedule.name}</p>
+                            </div>
+                            <div>
+                                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Kamar</label>
+                                <p class="text-lg font-semibold text-gray-800 mt-1">${schedule.room_name || '-'}</p>
+                            </div>
+                            <div>
+                                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Perangkat</label>
+                                <p class="text-lg font-semibold text-gray-800 mt-1">${schedule.device_name || '-'}</p>
+                            </div>
+                            <div>
+                                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Aksi</label>
+                                <p class="text-lg font-semibold text-gray-800 mt-1">${action}</p>
+                            </div>
+                            <div>
+                                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Waktu</label>
+                                <p class="text-lg font-semibold text-brand-blue mt-1">${schedule.start_time}${endTime}</p>
+                            </div>
+                            <div>
+                                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</label>
+                                <p class="text-lg font-semibold mt-1 ${schedule.is_active ? 'text-green-500' : 'text-gray-400'}">${schedule.is_active ? 'Aktif' : 'Nonaktif'}</p>
+                            </div>
+                        </div>
+                    `;
+                    openModal('modal-schedule-detail');
+                }
+            } catch (e) {
+                showToast('Failed to load schedule details', 'error');
             }
         }
 

@@ -17,6 +17,10 @@ class Device(Base):
     brightness: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     temperature: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     humidity: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    target_temperature: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # AC target temp
+    ac_mode: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # cool, heat, fan, dry
+    fan_speed: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # 1-5 or percentage
+    timer_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # auto-off timer
     extra_metadata: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=dict)
     is_online: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     firmware_version: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
@@ -28,3 +32,4 @@ class Device(Base):
     room: Mapped["Room"] = relationship("Room", back_populates="devices")
     telemetry_logs: Mapped[list["TelemetryLog"]] = relationship("TelemetryLog", back_populates="device", cascade="all, delete-orphan", lazy="selectin")
     command_logs: Mapped[list["CommandLog"]] = relationship("CommandLog", back_populates="device", cascade="all, delete-orphan", lazy="selectin")
+    schedules: Mapped[list["Schedule"]] = relationship("Schedule", back_populates="device", cascade="all, delete-orphan")

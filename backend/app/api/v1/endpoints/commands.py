@@ -26,8 +26,14 @@ async def send_command(
 ):
     """Send a command to a specific device."""
     result = await device_manager.send_command(
-        device_id=device_id, action=body.action,
-        value=body.value, source="api",
+        device_id=device_id, 
+        action=body.action,
+        value=body.value, 
+        source="api",
+        target_temperature=body.target_temperature,
+        ac_mode=body.ac_mode,
+        fan_speed=body.fan_speed,
+        timer_minutes=body.timer_minutes,
     )
     if not result.get("success"):
         error_msg = result.get("error", "Unknown error")

@@ -20,3 +20,4 @@ class Room(Base):
 
     owner: Mapped["User"] = relationship("User", back_populates="rooms")
     devices: Mapped[list["Device"]] = relationship("Device", back_populates="room", cascade="all, delete-orphan", lazy="selectin")
+    schedules: Mapped[list["Schedule"]] = relationship("Schedule", back_populates="room", cascade="all, delete-orphan")

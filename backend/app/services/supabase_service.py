@@ -429,6 +429,19 @@ class SupabaseService:
                 "active_devices": 0, "average_temperature": 24.5, "average_humidity": 65.0,
             }
 
+    # ── Schedules ────────────────────────────────────────────
+
+    async def get_all_schedules(self) -> List[Dict[str, Any]]:
+        """Get all active schedules."""
+        if not self._client:
+            return []
+        try:
+            response = self._client.table("schedules").select("*").execute()
+            return response.data if response.data else []
+        except Exception as e:
+            logger.error("get_all_schedules_failed", error=str(e))
+            return []
+
 
 # Singleton instance
 supabase_service = SupabaseService()

@@ -40,6 +40,10 @@ class DeviceResponse(BaseModel):
     brightness: int | None
     temperature: float | None
     humidity: float | None
+    target_temperature: int | None
+    ac_mode: str | None
+    fan_speed: int | None
+    timer_minutes: int | None
     extra_metadata: dict | None
     is_online: bool
     firmware_version: str | None
@@ -57,12 +61,16 @@ class DeviceCommandRequest(BaseModel):
     action: str = Field(
         ...,
         examples=["turn_on"],
-        description="Command action: turn_on, turn_off, toggle, set_value",
+        description="Command action: turn_on, turn_off, toggle, set_temperature, set_brightness, set_fan_speed, set_timer",
     )
     value: int | float | str | None = Field(
         None,
-        description="Optional value for set_value actions (e.g., brightness level)",
+        description="Optional value for set actions (e.g., brightness level, temperature)",
     )
+    target_temperature: int | None = None
+    ac_mode: str | None = None
+    fan_speed: int | None = None
+    timer_minutes: int | None = None
 
 
 class DeviceCommandResponse(BaseModel):

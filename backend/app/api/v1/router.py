@@ -15,6 +15,7 @@ from app.api.v1.endpoints.chat import router as chat_router
 from app.api.v1.endpoints.voice import router as voice_router
 from app.api.v1.endpoints.websocket import router as ws_router
 from app.api.v1.endpoints.system import router as system_router
+from app.api.v1.endpoints.schedules import router as schedules_router
 
 api_router = APIRouter()
 
@@ -27,3 +28,4 @@ api_router.include_router(chat_router, prefix="/chat", tags=["AI Chat"])
 api_router.include_router(voice_router, prefix="/voice", tags=["Voice Assistant"])
 api_router.include_router(ws_router, prefix="/ws", tags=["WebSocket"])
 api_router.include_router(system_router, prefix="/system", tags=["System & Config"])
+api_router.include_router(schedules_router, prefix="/schedules", tags=["Schedules"])

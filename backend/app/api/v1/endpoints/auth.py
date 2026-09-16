@@ -165,3 +165,14 @@ async def update_me(
         return UserResponse(**updated_user)
     
     return UserResponse(**user)
+
+
+@router.post("/verify-password")
+async def verify_user_password(
+    password: str,
+    user: dict = Depends(get_current_user),
+) -> dict:
+    """Verify user password for showing in settings."""
+    if verify_password(password, user["hashed_password"]):
+        return {"verified": True}
+    raise UnauthorizedError("Invalid password")

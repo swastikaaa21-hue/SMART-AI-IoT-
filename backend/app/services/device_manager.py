@@ -122,6 +122,10 @@ class DeviceManager:
         action: str,
         value: int | float | str | None = None,
         source: str = "api",
+        target_temperature: int | None = None,
+        ac_mode: str | None = None,
+        fan_speed: int | None = None,
+        timer_minutes: int | None = None,
     ) -> dict[str, Any]:
         device = await self.get_device(device_id)
         if not device:
@@ -158,6 +162,16 @@ class DeviceManager:
         extra: dict[str, Any] = {}
         if value is not None and action == CommandAction.SET_VALUE.value:
             extra["value"] = value
+        
+        # Add AC/device controls to payload
+        if target_temperature is not None:
+            extra["target_temperature"] = target_temperature
+        if ac_mode is not None:
+            extra["ac_mode"] = ac_mode
+        if fan_speed is not None:
+            extra["fan_speed"] = fan_speed
+        if timer_minutes is not None:
+            extra["timer_minutes"] = timer_minutes
 
         # Publish via MQTT
         published = await mqtt_service.publish_command(
@@ -202,6 +216,17 @@ class DeviceManager:
                     dev_updates["brightness"] = int(num_val)
             except (ValueError, TypeError):
                 pass
+        
+        # Update AC controls
+        if target_temperature is not None:
+            dev_updates["target_temperature"] = target_temperature
+        if ac_mode is not None:
+            dev_updates["ac_mode"] = ac_mode
+        if fan_speed is not None:
+            dev_updates["fan_speed"] = fan_speed
+        if timer_minutes is not None:
+            dev_updates["timer_minutes"] = timer_minutes
+            
         try:
             await supabase_service.update_device_by_device_id(device["device_id"], dev_updates)
         except Exception:
