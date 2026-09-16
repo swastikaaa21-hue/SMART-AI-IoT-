@@ -3,7 +3,7 @@
 from datetime import time
 from sqlalchemy import Column, String, Boolean, Time, ForeignKey, Text
 from sqlalchemy.orm import relationship
-from app.db.base_class import Base
+from app.db.session import Base
 
 
 class Schedule(Base):
